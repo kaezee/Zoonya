@@ -18,6 +18,88 @@
             font-family: Georgia, 'Times New Roman', serif;
         }
 
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .auth-dialog {
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #8B4513;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-dialog h2 {
+            color: #D4AF37;
+            margin-bottom: 20px;
+        }
+
+        .auth-dialog input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(40, 40, 40, 0.9);
+            border: 2px solid #8B4513;
+            border-radius: 8px;
+            color: #D4AF37;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .auth-dialog input:focus {
+            outline: none;
+            border-color: #D4AF37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .auth-dialog button {
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            color: #D4AF37;
+            border: 2px solid #D4AF37;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .auth-dialog button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .role-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #8B4513;
+            color: #D4AF37;
+            font-size: 12px;
+            z-index: 1001;
+        }
+
+        .role-indicator.admin {
+            border-color: #D4AF37;
+            background: rgba(212, 175, 55, 0.2);
+        }
+
         .map-container {
             position: relative;
             width: 100vw;
@@ -74,6 +156,15 @@
             color: #1a1a1a;
         }
 
+        .control-btn.admin-only {
+            border-color: #D4AF37;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .zoom-display {
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #8B4513;
@@ -103,6 +194,11 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
 
+        .auth-dialog input::placeholder {
+            color: #888;
+            font-style: italic;
+        }
+
         .file-input-container {
             margin-top: 15px;
         }
@@ -126,6 +222,12 @@
         .file-label:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .file-label.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
         }
 
         .region-marker {
@@ -282,26 +384,99 @@
             color: #D4AF37;
             margin-bottom: 15px;
         }
+
+        .save-data {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(139, 69, 19, 0.2);
+            border-radius: 6px;
+            border: 1px solid #8B4513;
+        }
+
+        .save-btn {
+            background: linear-gradient(45deg, #228B22, #32CD32);
+            color: white;
+            border: 2px solid #32CD32;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .save-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(50, 205, 50, 0.3);
+        }
+
+        .logout-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(139, 69, 19, 0.8);
+            color: #D4AF37;
+            border: 2px solid #8B4513;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(212, 175, 55, 0.8);
+            color: #1a1a1a;
+        }
     </style>
 </head>
 <body>
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-dialog">
+            <h2>⭐ Enter the World of Zoonya</h2>
+            <p>Please enter the phrase:</p>
+            <p style="color: #D4AF37; font-weight: bold; font-size: 18px; margin: 15px 0;">
+                <strong>Zoona-unna dua</strong> - <em>World-home to you</em>
+            </p>
+            <input type="text" id="accessKey" placeholder="Zoona-unna dua" maxlength="50">
+            <div style="margin-top: 15px;">
+                <button onclick="authenticate()">Enter Zoonya</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="roleIndicator" class="role-indicator" style="display: none;">
+        Viewer
+    </div>
+
     <div class="map-container" id="mapContainer">
         <div class="placeholder-map" id="placeholderMap">
             <div class="placeholder-text">
-                <h3>🗺️ The World of Zoonya Awaits</h3>
-                <p>Upload your Zoonya world map image using the file input on the left to begin exploring this mystical realm!</p>
+                <h3>⭐ The World of Zoonya Awaits</h3>
+                <p>The ancient map of Zoonya has been loaded from the archives. Explore the mystical realm!</p>
             </div>
         </div>
         <img class="map-image" id="mapImage" style="display: none;" alt="Zoonya World Map">
     </div>
 
     <div class="info-panel">
-        <h2>🏰 Zoonya Map</h2>
-        <p>Upload your Zoonya world map and explore it with zoom and pan controls.</p>
+        <h2>⭐ Zoonya Map</h2>
+        <p>Explore the world of Zoonya with interactive zoom and pan controls.</p>
         
-        <div class="file-input-container">
-            <label for="mapFile" class="file-label">📁 Upload Map Image</label>
+        <div class="file-input-container" id="adminControls" style="display: none;">
+            <label for="mapFile" class="file-label" id="mapFileLabel">📁 Upload New Map</label>
             <input type="file" id="mapFile" class="file-input" accept="image/*">
+        </div>
+
+        <div class="save-data" id="saveControls" style="display: none;">
+            <strong>Map Data:</strong><br>
+            <button class="save-btn" onclick="saveMapData()">💾 Save Map</button>
+            <button class="save-btn" onclick="loadMapData()">📂 Load Map</button>
+            <button class="save-btn" onclick="exportData()">📤 Export</button>
+            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
+            <button class="save-btn" onclick="document.getElementById('importFile').click()">📥 Import</button>
         </div>
 
         <div class="instructions">
@@ -309,11 +484,13 @@
             <ul>
                 <li>🖱️ Drag to pan around</li>
                 <li>🔍 Use zoom buttons or scroll wheel</li>
-                <li>🖱️ Double-click to add region markers</li>
-                <li>📝 Use 'T' button then click to add text</li>
+                <li id="markerInstruction" style="display: none;">🖱️ Double-click to add region markers</li>
+                <li id="textInstruction" style="display: none;">📝 Use 'T' button then click to add text</li>
                 <li>🎯 Hover over markers for tooltips</li>
-                <li>✏️ Double-click text to edit</li>
-                <li>🗑️ Right-click text to delete</li>
+                <li id="editInstructions" style="display: none;">
+                    <li>✏️ Double-click text to edit</li>
+                    <li>🗑️ Right-click text to delete</li>
+                </li>
             </ul>
         </div>
     </div>
@@ -323,11 +500,21 @@
         <div class="zoom-display" id="zoomDisplay">100%</div>
         <button class="control-btn" id="zoomOut">-</button>
         <button class="control-btn" id="resetView">⌂</button>
-        <button class="control-btn" id="addText">T</button>
-        <button class="control-btn" id="clearMarkers">🗑️</button>
+        <button class="control-btn admin-only" id="addText" style="display: none;">T</button>
+        <button class="control-btn admin-only" id="clearMarkers" style="display: none;">🗑️</button>
     </div>
 
+    <button class="logout-btn" onclick="logout()" style="display: none;" id="logoutBtn">🚪 Logout</button>
+
     <script>
+        // Configuration - Change these values to customize access
+        const CONFIG = {
+            ADMIN_KEY: "Zoonya Creator", // Change this to your admin password
+            VIEWER_KEY: "Zoona-unna dua",     // Change this to your viewer password
+            DEFAULT_MAP_URL: "https://i.imgur.com/placeholder.jpg", // Put your default map URL here
+            ENABLE_SAVE: true // Set to false to disable save/load features
+        };
+
         class ZoonyaMapViewer {
             constructor() {
                 this.container = document.getElementById('mapContainer');
@@ -344,17 +531,22 @@
                 this.regions = [];
                 this.textLabels = [];
                 this.textMode = false;
+                this.userRole = 'viewer';
                 
                 this.minZoom = 0.2;
                 this.maxZoom = 5;
                 
                 this.initializeEventListeners();
+                this.loadDefaultMap();
+                this.loadSavedData();
             }
 
             initializeEventListeners() {
-                // File upload
+                // File upload (admin only)
                 document.getElementById('mapFile').addEventListener('change', (e) => {
-                    this.loadImage(e.target.files[0]);
+                    if (this.userRole === 'admin') {
+                        this.loadImage(e.target.files[0]);
+                    }
                 });
 
                 // Zoom controls
@@ -371,14 +563,18 @@
                 });
 
                 document.getElementById('clearMarkers').addEventListener('click', () => {
-                    this.clearAll();
+                    if (this.userRole === 'admin') {
+                        this.clearAll();
+                    }
                 });
 
                 document.getElementById('addText').addEventListener('click', () => {
-                    this.toggleTextMode();
+                    if (this.userRole === 'admin') {
+                        this.toggleTextMode();
+                    }
                 });
 
-                // Mouse events for panning
+                // Mouse events
                 this.container.addEventListener('mousedown', (e) => {
                     if (e.target === this.image || e.target === this.container) {
                         this.startDragging(e);
@@ -403,17 +599,17 @@
                     }
                 });
 
-                // Double-click to add region marker
+                // Double-click to add region marker (admin only)
                 this.container.addEventListener('dblclick', (e) => {
-                    if (this.image.style.display !== 'none' && !this.textMode) {
+                    if (this.image.style.display !== 'none' && !this.textMode && this.userRole === 'admin') {
                         e.preventDefault();
                         this.addRegionMarker(e);
                     }
                 });
 
-                // Single click for text in text mode
+                // Single click for text in text mode (admin only)
                 this.container.addEventListener('click', (e) => {
-                    if (this.textMode && this.image.style.display !== 'none') {
+                    if (this.textMode && this.image.style.display !== 'none' && this.userRole === 'admin') {
                         if (!e.target.classList.contains('control-btn') && 
                             !e.target.classList.contains('region-marker') &&
                             !e.target.classList.contains('text-label')) {
@@ -422,10 +618,68 @@
                     }
                 });
 
-                // Prevent context menu on container
                 this.container.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                 });
+
+                // Auto-save every 30 seconds (admin only)
+                if (CONFIG.ENABLE_SAVE) {
+                    setInterval(() => {
+                        if (this.userRole === 'admin') {
+                            this.autoSave();
+                        }
+                    }, 30000);
+                }
+            }
+
+            setUserRole(role) {
+                this.userRole = role;
+                const roleIndicator = document.getElementById('roleIndicator');
+                const adminControls = document.getElementById('adminControls');
+                const saveControls = document.getElementById('saveControls');
+                const logoutBtn = document.getElementById('logoutBtn');
+                
+                roleIndicator.style.display = 'block';
+                logoutBtn.style.display = 'block';
+                
+                if (role === 'admin') {
+                    roleIndicator.textContent = 'Administrator';
+                    roleIndicator.classList.add('admin');
+                    adminControls.style.display = 'block';
+                    if (CONFIG.ENABLE_SAVE) {
+                        saveControls.style.display = 'block';
+                    }
+                    
+                    // Show admin controls
+                    document.getElementById('addText').style.display = 'block';
+                    document.getElementById('clearMarkers').style.display = 'block';
+                    document.getElementById('markerInstruction').style.display = 'list-item';
+                    document.getElementById('textInstruction').style.display = 'list-item';
+                    document.getElementById('editInstructions').style.display = 'block';
+                } else {
+                    roleIndicator.textContent = 'Viewer';
+                    roleIndicator.classList.remove('admin');
+                    adminControls.style.display = 'none';
+                    saveControls.style.display = 'none';
+                    
+                    // Hide admin controls
+                    document.getElementById('addText').style.display = 'none';
+                    document.getElementById('clearMarkers').style.display = 'none';
+                }
+            }
+
+            loadDefaultMap() {
+                if (CONFIG.DEFAULT_MAP_URL && CONFIG.DEFAULT_MAP_URL !== "https://i.imgur.com/placeholder.jpg") {
+                    this.image.src = CONFIG.DEFAULT_MAP_URL;
+                    this.image.onload = () => {
+                        this.placeholder.style.display = 'none';
+                        this.image.style.display = 'block';
+                        this.resetView();
+                    };
+                    this.image.onerror = () => {
+                        console.log("Default map couldn't load, showing placeholder");
+                    };
+                }
             }
 
             loadImage(file) {
@@ -438,6 +692,9 @@
                         this.placeholder.style.display = 'none';
                         this.image.style.display = 'block';
                         this.resetView();
+                        if (this.userRole === 'admin' && CONFIG.ENABLE_SAVE) {
+                            this.saveImageData(e.target.result);
+                        }
                     };
                 };
                 reader.readAsDataURL(file);
@@ -475,12 +732,10 @@
                 
                 if (newScale === this.scale) return;
 
-                // Use center of container if no specific center provided
                 const rect = this.container.getBoundingClientRect();
                 const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
                 const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
 
-                // Adjust translation to zoom towards center
                 const scaleRatio = newScale / this.scale;
                 this.translateX = zoomCenterX - (zoomCenterX - this.translateX) * scaleRatio;
                 this.translateY = zoomCenterY - (zoomCenterY - this.translateY) * scaleRatio;
@@ -493,21 +748,18 @@
             resetView() {
                 if (this.image.style.display === 'none') return;
                 
-                // Center the image in the container
                 const containerRect = this.container.getBoundingClientRect();
-                const imageRect = this.image.getBoundingClientRect();
                 
                 this.scale = 1;
                 this.translateX = (containerRect.width - this.image.naturalWidth) / 2;
                 this.translateY = (containerRect.height - this.image.naturalHeight) / 2;
                 
-                // Fit image to container if too large
                 const scaleX = containerRect.width / this.image.naturalWidth;
                 const scaleY = containerRect.height / this.image.naturalHeight;
                 const fitScale = Math.min(scaleX, scaleY, 1);
                 
                 if (fitScale < 1) {
-                    this.scale = fitScale * 0.9; // 90% to add some margin
+                    this.scale = fitScale * 0.9;
                     this.translateX = (containerRect.width - this.image.naturalWidth * this.scale) / 2;
                     this.translateY = (containerRect.height - this.image.naturalHeight * this.scale) / 2;
                 }
@@ -522,13 +774,11 @@
                         `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
                 }
                 
-                // Update region markers positions
                 this.regions.forEach(region => {
                     region.element.style.transform = 
                         `translate(${this.translateX + region.x * this.scale}px, ${this.translateY + region.y * this.scale}px) translate(-50%, -50%)`;
                 });
 
-                // Update text labels positions
                 this.textLabels.forEach(label => {
                     label.element.style.transform = 
                         `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
@@ -569,6 +819,7 @@
                 this.regions.push(region);
 
                 this.updateTransform();
+                if (CONFIG.ENABLE_SAVE) this.autoSave();
             }
 
             toggleTextMode() {
@@ -626,18 +877,17 @@
                 document.body.appendChild(dialog);
 
                 const textInput = document.getElementById('textInput');
-                const textSize = document.getElementById('textSize');
-                const textColor = document.getElementById('textColor');
-
                 textInput.focus();
 
                 document.getElementById('addTextBtn').addEventListener('click', () => {
                     const text = textInput.value.trim();
                     if (text) {
-                        this.createTextLabel(x, y, text, parseInt(textSize.value), textColor.value);
+                        const size = parseInt(document.getElementById('textSize').value);
+                        const color = document.getElementById('textColor').value;
+                        this.createTextLabel(x, y, text, size, color);
                     }
                     dialog.remove();
-                    this.toggleTextMode(); // Exit text mode after adding
+                    this.toggleTextMode();
                 });
 
                 document.getElementById('cancelText').addEventListener('click', () => {
@@ -647,12 +897,6 @@
                 textInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         document.getElementById('addTextBtn').click();
-                    }
-                });
-
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && document.contains(dialog)) {
-                        dialog.remove();
                     }
                 });
             }
@@ -666,21 +910,25 @@
                 label.style.left = '0px';
                 label.style.top = '0px';
 
-                label.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    this.editTextLabel(label, x, y, size, color);
-                });
+                // Only admin can edit/delete
+                if (this.userRole === 'admin') {
+                    label.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        this.editTextLabel(label, x, y, size, color);
+                    });
 
-                label.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    if (confirm('Delete this text label?')) {
-                        const index = this.textLabels.findIndex(l => l.element === label);
-                        if (index !== -1) {
-                            this.textLabels.splice(index, 1);
-                            label.remove();
+                    label.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        if (confirm('Delete this text label?')) {
+                            const index = this.textLabels.findIndex(l => l.element === label);
+                            if (index !== -1) {
+                                this.textLabels.splice(index, 1);
+                                label.remove();
+                                if (CONFIG.ENABLE_SAVE) this.autoSave();
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
                 this.container.appendChild(label);
 
@@ -695,6 +943,7 @@
                 this.textLabels.push(textLabel);
 
                 this.updateTransform();
+                if (CONFIG.ENABLE_SAVE) this.autoSave();
             }
 
             editTextLabel(labelElement, x, y, currentSize, currentColor) {
@@ -730,25 +979,27 @@
                 document.body.appendChild(dialog);
 
                 const textInput = document.getElementById('editTextInput');
-                const textSize = document.getElementById('editTextSize');
-                const textColor = document.getElementById('editTextColor');
-
                 textInput.focus();
                 textInput.select();
 
                 document.getElementById('saveEdit').addEventListener('click', () => {
                     const newText = textInput.value.trim();
                     if (newText) {
+                        const newSize = parseInt(document.getElementById('editTextSize').value);
+                        const newColor = document.getElementById('editTextColor').value;
+                        
                         labelElement.textContent = newText;
-                        labelElement.style.color = textColor.value;
-                        labelElement.style.fontSize = textSize.value + 'px';
+                        labelElement.style.color = newColor;
+                        labelElement.style.fontSize = newSize + 'px';
                         
                         const labelData = this.textLabels.find(l => l.element === labelElement);
                         if (labelData) {
                             labelData.text = newText;
-                            labelData.baseSize = parseInt(textSize.value);
-                            labelData.color = textColor.value;
+                            labelData.baseSize = newSize;
+                            labelData.color = newColor;
                         }
+                        
+                        if (CONFIG.ENABLE_SAVE) this.autoSave();
                     }
                     dialog.remove();
                 });
@@ -759,20 +1010,255 @@
             }
 
             clearAll() {
-                this.regions.forEach(region => {
-                    region.element.remove();
-                });
-                this.regions = [];
+                if (confirm('Are you sure you want to clear all markers and text labels?')) {
+                    this.regions.forEach(region => {
+                        region.element.remove();
+                    });
+                    this.regions = [];
 
-                this.textLabels.forEach(label => {
-                    label.element.remove();
-                });
-                this.textLabels = [];
+                    this.textLabels.forEach(label => {
+                        label.element.remove();
+                    });
+                    this.textLabels = [];
+                    
+                    if (CONFIG.ENABLE_SAVE) this.autoSave();
+                }
+            }
+
+            // Save/Load functionality
+            saveImageData(imageData) {
+                localStorage.setItem('zoonya_map_image', imageData);
+            }
+
+            loadSavedData() {
+                try {
+                    const savedImage = localStorage.getItem('zoonya_map_image');
+                    if (savedImage) {
+                        this.image.src = savedImage;
+                        this.image.onload = () => {
+                            this.placeholder.style.display = 'none';
+                            this.image.style.display = 'block';
+                            this.resetView();
+                        };
+                    }
+
+                    const savedData = localStorage.getItem('zoonya_map_data');
+                    if (savedData) {
+                        const data = JSON.parse(savedData);
+                        this.loadMapFromData(data);
+                    }
+                } catch (e) {
+                    console.log('No saved data found');
+                }
+            }
+
+            autoSave() {
+                if (!CONFIG.ENABLE_SAVE || this.userRole !== 'admin') return;
+                
+                const mapData = {
+                    regions: this.regions.map(r => ({
+                        x: r.x,
+                        y: r.y,
+                        name: r.name
+                    })),
+                    textLabels: this.textLabels.map(l => ({
+                        x: l.x,
+                        y: l.y,
+                        text: l.text,
+                        baseSize: l.baseSize,
+                        color: l.color
+                    })),
+                    scale: this.scale,
+                    translateX: this.translateX,
+                    translateY: this.translateY
+                };
+                
+                localStorage.setItem('zoonya_map_data', JSON.stringify(mapData));
+            }
+
+            loadMapFromData(data) {
+                // Clear existing
+                this.clearAll();
+                
+                // Load regions
+                if (data.regions) {
+                    data.regions.forEach(regionData => {
+                        const marker = document.createElement('div');
+                        marker.className = 'region-marker';
+                        marker.style.left = '0px';
+                        marker.style.top = '0px';
+
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'region-tooltip';
+                        tooltip.textContent = regionData.name;
+                        marker.appendChild(tooltip);
+
+                        marker.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            alert(`Region: ${regionData.name}\nWelcome to ${regionData.name} in the world of Zoonya!`);
+                        });
+
+                        this.container.appendChild(marker);
+                        this.regions.push({
+                            element: marker,
+                            x: regionData.x,
+                            y: regionData.y,
+                            name: regionData.name
+                        });
+                    });
+                }
+                
+                // Load text labels
+                if (data.textLabels) {
+                    data.textLabels.forEach(labelData => {
+                        this.createTextLabel(
+                            labelData.x,
+                            labelData.y,
+                            labelData.text,
+                            labelData.baseSize,
+                            labelData.color
+                        );
+                    });
+                }
+                
+                // Restore view
+                if (data.scale) {
+                    this.scale = data.scale;
+                    this.translateX = data.translateX || 0;
+                    this.translateY = data.translateY || 0;
+                    this.updateTransform();
+                    this.updateZoomDisplay();
+                }
             }
         }
 
+        // Global functions for authentication and data management
+        function authenticate() {
+            const key = document.getElementById('accessKey').value.trim();
+            
+            if (key === CONFIG.ADMIN_KEY) {
+                document.getElementById('authOverlay').style.display = 'none';
+                window.zoonyaMapViewer.setUserRole('admin');
+            } else if (key === CONFIG.VIEWER_KEY) {
+                document.getElementById('authOverlay').style.display = 'none';
+                window.zoonyaMapViewer.setUserRole('viewer');
+            } else {
+                alert('Invalid access key. Please try again.');
+                document.getElementById('accessKey').value = '';
+            }
+        }
+
+        function logout() {
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('accessKey').value = '';
+            document.getElementById('roleIndicator').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'none';
+            window.zoonyaMapViewer.setUserRole('viewer');
+        }
+
+        function saveMapData() {
+            if (window.zoonyaMapViewer.userRole !== 'admin') return;
+            
+            const mapData = {
+                regions: window.zoonyaMapViewer.regions.map(r => ({
+                    x: r.x,
+                    y: r.y,
+                    name: r.name
+                })),
+                textLabels: window.zoonyaMapViewer.textLabels.map(l => ({
+                    x: l.x,
+                    y: l.y,
+                    text: l.text,
+                    baseSize: l.baseSize,
+                    color: l.color
+                })),
+                scale: window.zoonyaMapViewer.scale,
+                translateX: window.zoonyaMapViewer.translateX,
+                translateY: window.zoonyaMapViewer.translateY,
+                savedAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem('zoonya_map_data', JSON.stringify(mapData));
+            alert('Map data saved successfully!');
+        }
+
+        function loadMapData() {
+            if (window.zoonyaMapViewer.userRole !== 'admin') return;
+            
+            try {
+                const savedData = localStorage.getItem('zoonya_map_data');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    window.zoonyaMapViewer.loadMapFromData(data);
+                    alert('Map data loaded successfully!');
+                } else {
+                    alert('No saved data found.');
+                }
+            } catch (e) {
+                alert('Error loading saved data.');
+            }
+        }
+
+        function exportData() {
+            if (window.zoonyaMapViewer.userRole !== 'admin') return;
+            
+            const mapData = {
+                regions: window.zoonyaMapViewer.regions.map(r => ({
+                    x: r.x,
+                    y: r.y,
+                    name: r.name
+                })),
+                textLabels: window.zoonyaMapViewer.textLabels.map(l => ({
+                    x: l.x,
+                    y: l.y,
+                    text: l.text,
+                    baseSize: l.baseSize,
+                    color: l.color
+                })),
+                scale: window.zoonyaMapViewer.scale,
+                translateX: window.zoonyaMapViewer.translateX,
+                translateY: window.zoonyaMapViewer.translateY,
+                exportedAt: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(mapData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'zoonya_map_export.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            if (window.zoonyaMapViewer.userRole !== 'admin') return;
+            
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        window.zoonyaMapViewer.loadMapFromData(data);
+                        alert('Map data imported successfully!');
+                    } catch (error) {
+                        alert('Error importing data. Please check the file format.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Handle Enter key on access key input
+        document.getElementById('accessKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                authenticate();
+            }
+        });
+
         // Initialize the Zoonya map viewer
-        const zoonyaMapViewer = new ZoonyaMapViewer();
+        window.zoonyaMapViewer = new ZoonyaMapViewer();
     </script>
 </body>
 </html>
