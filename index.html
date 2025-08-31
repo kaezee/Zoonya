@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy World Map</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            cursor: grab;
+            background: radial-gradient(circle at center, #2d2d2d 0%, #1a1a1a 100%);
+        }
+
+        .map-container:active {
+            cursor: grabbing;
+        }
+
+        .map-image {
+            position: absolute;
+            transition: transform 0.1s ease-out;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #8B4513;
+            color: #D4AF37;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .control-btn:hover {
+            background: rgba(139, 69, 19, 0.8);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .zoom-display {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #8B4513;
+            color: #D4AF37;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #8B4513;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .info-panel h2 {
+            color: #D4AF37;
+            margin-top: 0;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .file-input-container {
+            margin-top: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            color: #D4AF37;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 2px solid #D4AF37;
+        }
+
+        .file-label:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .region-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #D4AF37, #B8860B);
+            border: 3px solid #8B4513;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+        }
+
+        .region-marker:hover {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.9);
+        }
+
+        .region-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: #D4AF37;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1001;
+            border: 1px solid #8B4513;
+            transform: translate(-50%, -120%);
+        }
+
+        .text-label {
+            position: absolute;
+            color: #D4AF37;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 500;
+            cursor: text;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            white-space: nowrap;
+        }
+
+        .text-input-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #8B4513;
+            border-radius: 12px;
+            padding: 25px;
+            z-index: 2000;
+            min-width: 400px;
+        }
+
+        .text-input-dialog h3 {
+            color: #D4AF37;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .text-input-dialog input,
+        .text-input-dialog select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(40, 40, 40, 0.9);
+            border: 2px solid #8B4513;
+            border-radius: 6px;
+            color: #D4AF37;
+            font-size: 14px;
+        }
+
+        .text-input-dialog input:focus,
+        .text-input-dialog select:focus {
+            outline: none;
+            border-color: #D4AF37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .dialog-btn {
+            padding: 10px 20px;
+            border: 2px solid #8B4513;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .dialog-btn.primary {
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            color: #D4AF37;
+        }
+
+        .dialog-btn.secondary {
+            background: rgba(60, 60, 60, 0.8);
+            color: #ccc;
+        }
+
+        .dialog-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            background: rgba(139, 69, 19, 0.2);
+            border-left: 4px solid #D4AF37;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+
+        .instructions ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        .placeholder-map {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2F4F2F, #8FBC8F, #228B22, #32CD32);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .placeholder-text {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #D4AF37;
+            max-width: 400px;
+        }
+
+        .placeholder-text h3 {
+            color: #D4AF37;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container" id="mapContainer">
+        <div class="placeholder-map" id="placeholderMap">
+            <div class="placeholder-text">
+                <h3>🗺️ Fantasy World Awaits</h3>
+                <p>Upload your world map image using the file input on the left to begin exploring your realm!</p>
+            </div>
+        </div>
+        <img class="map-image" id="mapImage" style="display: none;" alt="Fantasy World Map">
+    </div>
+
+    <div class="info-panel">
+        <h2>🏰 World Explorer</h2>
+        <p>Upload your fantasy world map and explore it with zoom and pan controls.</p>
+        
+        <div class="file-input-container">
+            <label for="mapFile" class="file-label">📁 Upload Map Image</label>
+            <input type="file" id="mapFile" class="file-input" accept="image/*">
+        </div>
+
+        <div class="instructions">
+            <strong>Controls:</strong>
+            <ul>
+                <li>🖱️ Drag to pan around</li>
+                <li>🔍 Use zoom buttons or scroll wheel</li>
+                <li>🖱️ Double-click to add region markers</li>
+                <li>📝 Use 'T' button then click to add text</li>
+                <li>🎯 Hover over markers for tooltips</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" id="zoomIn">+</button>
+        <div class="zoom-display" id="zoomDisplay">100%</div>
+        <button class="control-btn" id="zoomOut">-</button>
+        <button class="control-btn" id="resetView">⌂</button>
+        <button class="control-btn" id="addText">T</button>
+        <button class="control-btn" id="clearMarkers">🗑️</button>
+    </div>
+
+    <script>
+        class FantasyMapViewer {
+            constructor() {
+                this.container = document.getElementById('mapContainer');
+                this.image = document.getElementById('mapImage');
+                this.placeholder = document.getElementById('placeholderMap');
+                this.zoomDisplay = document.getElementById('zoomDisplay');
+                
+                this.scale = 1;
+                this.translateX = 0;
+                this.translateY = 0;
+                this.isDragging = false;
+                this.lastMouseX = 0;
+                this.lastMouseY = 0;
+                this.regions = [];
+                this.textLabels = [];
+                this.textMode = false;
+                
+                this.minZoom = 0.1;
+                this.maxZoom = 5;
+                
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // File upload
+                document.getElementById('mapFile').addEventListener('change', (e) => {
+                    this.loadImage(e.target.files[0]);
+                });
+
+                // Zoom controls
+                document.getElementById('zoomIn').addEventListener('click', () => {
+                    this.zoom(1.2);
+                });
+
+                document.getElementById('zoomOut').addEventListener('click', () => {
+                    this.zoom(0.8);
+                });
+
+                document.getElementById('resetView').addEventListener('click', () => {
+                    this.resetView();
+                });
+
+                document.getElementById('clearMarkers').addEventListener('click', () => {
+                    this.clearRegionMarkers();
+                });
+
+                document.getElementById('addText').addEventListener('click', () => {
+                    this.toggleTextMode();
+                });
+
+                // Mouse events for panning
+                this.container.addEventListener('mousedown', (e) => {
+                    if (e.target === this.image || e.target === this.container) {
+                        this.startDragging(e);
+                    }
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    this.drag(e);
+                });
+
+                document.addEventListener('mouseup', () => {
+                    this.stopDragging();
+                });
+
+                // Zoom with scroll wheel
+                this.container.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.zoom(zoomFactor, e.clientX, e.clientY);
+                });
+
+                // Double-click to add region marker, single click for text in text mode
+                this.container.addEventListener('dblclick', (e) => {
+                    if (this.image.style.display !== 'none' && !this.textMode) {
+                        this.addRegionMarker(e);
+                    }
+                });
+
+                this.container.addEventListener('click', (e) => {
+                    if (this.textMode && this.image.style.display !== 'none') {
+                        this.addTextLabel(e);
+                    }
+                });
+
+                // Prevent context menu
+                this.container.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+            }
+
+            loadImage(file) {
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.image.src = e.target.result;
+                    this.image.onload = () => {
+                        this.placeholder.style.display = 'none';
+                        this.image.style.display = 'block';
+                        this.resetView();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            startDragging(e) {
+                this.isDragging = true;
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
+                this.container.style.cursor = 'grabbing';
+            }
+
+            drag(e) {
+                if (!this.isDragging) return;
+
+                const deltaX = e.clientX - this.lastMouseX;
+                const deltaY = e.clientY - this.lastMouseY;
+
+                this.translateX += deltaX;
+                this.translateY += deltaY;
+
+                this.updateTransform();
+
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
+            }
+
+            stopDragging() {
+                this.isDragging = false;
+                this.container.style.cursor = 'grab';
+            }
+
+            zoom(factor, centerX = null, centerY = null) {
+                const newScale = Math.max(this.minZoom, Math.min(this.maxZoom, this.scale * factor));
+                
+                if (newScale === this.scale) return;
+
+                // Calculate zoom center
+                const rect = this.container.getBoundingClientRect();
+                const zoomCenterX = centerX !== null ? centerX - rect.left : rect.width / 2;
+                const zoomCenterY = centerY !== null ? centerY - rect.top : rect.height / 2;
+
+                // Adjust translation to zoom towards center
+                const scaleRatio = newScale / this.scale;
+                this.translateX = zoomCenterX - (zoomCenterX - this.translateX) * scaleRatio;
+                this.translateY = zoomCenterY - (zoomCenterY - this.translateY) * scaleRatio;
+
+                this.scale = newScale;
+                this.updateTransform();
+                this.updateZoomDisplay();
+            }
+
+            resetView() {
+                this.scale = 1;
+                this.translateX = 0;
+                this.translateY = 0;
+                this.updateTransform();
+                this.updateZoomDisplay();
+            }
+
+            updateTransform() {
+                if (this.image.style.display !== 'none') {
+                    this.image.style.transform = 
+                        `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+                }
+                
+                // Update region markers and text labels
+                this.regions.forEach(region => {
+                    region.element.style.transform = 
+                        `translate(${this.translateX + region.x * this.scale}px, ${this.translateY + region.y * this.scale}px) translate(-50%, -50%)`;
+                });
+
+                this.textLabels.forEach(label => {
+                    label.element.style.transform = 
+                        `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
+                    label.element.style.fontSize = Math.max(10, label.baseSize * this.scale) + 'px';
+                });
+            }
+
+            updateZoomDisplay() {
+                this.zoomDisplay.textContent = Math.round(this.scale * 100) + '%';
+            }
+
+            addRegionMarker(e) {
+                const rect = this.container.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.translateX) / this.scale;
+                const y = (e.clientY - rect.top - this.translateY) / this.scale;
+
+                const regionName = prompt('Enter region name:');
+                if (!regionName) return;
+
+                const marker = document.createElement('div');
+                marker.className = 'region-marker';
+                marker.style.left = '0px';
+                marker.style.top = '0px';
+
+                const tooltip = document.createElement('div');
+                tooltip.className = 'region-tooltip';
+                tooltip.textContent = regionName;
+                marker.appendChild(tooltip);
+
+                marker.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    alert(`Region: ${regionName}\nAdd more details here!`);
+                });
+
+                this.container.appendChild(marker);
+
+                const region = { element: marker, x: x, y: y, name: regionName };
+                this.regions.push(region);
+
+                this.updateTransform();
+            }
+
+            clearRegionMarkers() {
+                this.regions.forEach(region => {
+                    region.element.remove();
+                });
+                this.regions = [];
+
+                this.textLabels.forEach(label => {
+                    label.element.remove();
+                });
+                this.textLabels = [];
+            }
+
+            toggleTextMode() {
+                this.textMode = !this.textMode;
+                const textBtn = document.getElementById('addText');
+                if (this.textMode) {
+                    textBtn.style.background = 'rgba(212, 175, 55, 0.8)';
+                    textBtn.style.color = '#1a1a1a';
+                    this.container.style.cursor = 'crosshair';
+                } else {
+                    textBtn.style.background = '';
+                    textBtn.style.color = '#D4AF37';
+                    this.container.style.cursor = 'grab';
+                }
+            }
+
+            addTextLabel(e) {
+                if (e.target.classList.contains('region-marker') || e.target.classList.contains('control-btn')) {
+                    return;
+                }
+
+                const rect = this.container.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.translateX) / this.scale;
+                const y = (e.clientY - rect.top - this.translateY) / this.scale;
+
+                this.showTextDialog(x, y);
+            }
+
+            showTextDialog(x, y) {
+                const dialog = document.createElement('div');
+                dialog.className = 'text-input-dialog';
+                dialog.innerHTML = `
+                    <h3>Add Map Text</h3>
+                    <input type="text" id="textInput" placeholder="Enter text..." maxlength="50">
+                    <select id="textSize">
+                        <option value="12">Small (12px)</option>
+                        <option value="16" selected>Medium (16px)</option>
+                        <option value="20">Large (20px)</option>
+                        <option value="24">Extra Large (24px)</option>
+                    </select>
+                    <select id="textColor">
+                        <option value="#D4AF37" selected>Gold</option>
+                        <option value="#FF6B6B">Red</option>
+                        <option value="#4ECDC4">Teal</option>
+                        <option value="#45B7D1">Blue</option>
+                        <option value="#96CEB4">Green</option>
+                        <option value="#FFEAA7">Yellow</option>
+                        <option value="#DDA0DD">Purple</option>
+                        <option value="#FFFFFF">White</option>
+                    </select>
+                    <div class="dialog-buttons">
+                        <button class="dialog-btn secondary" id="cancelText">Cancel</button>
+                        <button class="dialog-btn primary" id="addTextBtn">Add Text</button>
+                    </div>
+                `;
+
+                document.body.appendChild(dialog);
+
+                const textInput = document.getElementById('textInput');
+                const textSize = document.getElementById('textSize');
+                const textColor = document.getElementById('textColor');
+
+                textInput.focus();
+
+                document.getElementById('addTextBtn').addEventListener('click', () => {
+                    const text = textInput.value.trim();
+                    if (text) {
+                        this.createTextLabel(x, y, text, parseInt(textSize.value), textColor.value);
+                    }
+                    dialog.remove();
+                    this.toggleTextMode(); // Exit text mode after adding
+                });
+
+                document.getElementById('cancelText').addEventListener('click', () => {
+                    dialog.remove();
+                });
+
+                // Enter key to confirm
+                textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('addTextBtn').click();
+                    }
+                });
+
+                // Escape key to cancel
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && document.contains(dialog)) {
+                        dialog.remove();
+                    }
+                });
+            }
+
+            createTextLabel(x, y, text, size, color) {
+                const label = document.createElement('div');
+                label.className = 'text-label';
+                label.textContent = text;
+                label.style.color = color;
+                label.style.fontSize = size + 'px';
+                label.style.left = '0px';
+                label.style.top = '0px';
+
+                // Double-click to edit
+                label.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    this.editTextLabel(label, x, y, size, color);
+                });
+
+                // Right-click to delete
+                label.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (confirm('Delete this text label?')) {
+                        const index = this.textLabels.findIndex(l => l.element === label);
+                        if (index !== -1) {
+                            this.textLabels.splice(index, 1);
+                            label.remove();
+                        }
+                    }
+                });
+
+                this.container.appendChild(label);
+
+                const textLabel = { 
+                    element: label, 
+                    x: x, 
+                    y: y, 
+                    text: text, 
+                    baseSize: size, 
+                    color: color 
+                };
+                this.textLabels.push(textLabel);
+
+                this.updateTransform();
+            }
+
+            editTextLabel(labelElement, x, y, currentSize, currentColor) {
+                const currentText = labelElement.textContent;
+                
+                const dialog = document.createElement('div');
+                dialog.className = 'text-input-dialog';
+                dialog.innerHTML = `
+                    <h3>Edit Text</h3>
+                    <input type="text" id="editTextInput" value="${currentText}" maxlength="50">
+                    <select id="editTextSize">
+                        <option value="12" ${currentSize === 12 ? 'selected' : ''}>Small (12px)</option>
+                        <option value="16" ${currentSize === 16 ? 'selected' : ''}>Medium (16px)</option>
+                        <option value="20" ${currentSize === 20 ? 'selected' : ''}>Large (20px)</option>
+                        <option value="24" ${currentSize === 24 ? 'selected' : ''}>Extra Large (24px)</option>
+                    </select>
+                    <select id="editTextColor">
+                        <option value="#D4AF37" ${currentColor === '#D4AF37' ? 'selected' : ''}>Gold</option>
+                        <option value="#FF6B6B" ${currentColor === '#FF6B6B' ? 'selected' : ''}>Red</option>
+                        <option value="#4ECDC4" ${currentColor === '#4ECDC4' ? 'selected' : ''}>Teal</option>
+                        <option value="#45B7D1" ${currentColor === '#45B7D1' ? 'selected' : ''}>Blue</option>
+                        <option value="#96CEB4" ${currentColor === '#96CEB4' ? 'selected' : ''}>Green</option>
+                        <option value="#FFEAA7" ${currentColor === '#FFEAA7' ? 'selected' : ''}>Yellow</option>
+                        <option value="#DDA0DD" ${currentColor === '#DDA0DD' ? 'selected' : ''}>Purple</option>
+                        <option value="#FFFFFF" ${currentColor === '#FFFFFF' ? 'selected' : ''}>White</option>
+                    </select>
+                    <div class="dialog-buttons">
+                        <button class="dialog-btn secondary" id="cancelEdit">Cancel</button>
+                        <button class="dialog-btn primary" id="saveEdit">Save</button>
+                    </div>
+                `;
+
+                document.body.appendChild(dialog);
+
+                const textInput = document.getElementById('editTextInput');
+                const textSize = document.getElementById('editTextSize');
+                const textColor = document.getElementById('editTextColor');
+
+                textInput.focus();
+                textInput.select();
+
+                document.getElementById('saveEdit').addEventListener('click', () => {
+                    const newText = textInput.value.trim();
+                    if (newText) {
+                        labelElement.textContent = newText;
+                        labelElement.style.color = textColor.value;
+                        labelElement.style.fontSize = textSize.value + 'px';
+                        
+                        // Update the stored label data
+                        const labelData = this.textLabels.find(l => l.element === labelElement);
+                        if (labelData) {
+                            labelData.text = newText;
+                            labelData.baseSize = parseInt(textSize.value);
+                            labelData.color = textColor.value;
+                        }
+                    }
+                    dialog.remove();
+                });
+
+                document.getElementById('cancelEdit').addEventListener('click', () => {
+                    dialog.remove();
+                });
+            }
+        }
+
+        // Initialize the map viewer
+        const mapViewer = new FantasyMapViewer();
+    </script>
+</body>
+</html>
