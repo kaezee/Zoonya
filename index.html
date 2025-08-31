@@ -20,18 +20,34 @@
             height: 100vh;
             overflow: hidden;
             cursor: grab;
-            background: radial-gradient(circle at center, #2d2d2d 0%, #1a1a1a 100%);
+            background: #4A90E2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .map-container:active {
             cursor: grabbing;
         }
 
+        .map-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
         .map-image {
-            position: absolute;
+            max-width: 90vw;
+            max-height: 90vh;
+            width: auto;
+            height: auto;
             transition: transform 0.1s ease-out;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
+            transform-origin: center center;
         }
 
         .controls {
@@ -62,6 +78,11 @@
             background: rgba(139, 69, 19, 0.8);
             transform: scale(1.05);
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .control-btn.active {
+            background: rgba(212, 175, 55, 0.8);
+            color: #1a1a1a;
         }
 
         .zoom-display {
@@ -129,6 +150,7 @@
             transform: translate(-50%, -50%);
             transition: all 0.3s ease;
             box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+            z-index: 500;
         }
 
         .region-marker:hover {
@@ -155,10 +177,10 @@
             color: #D4AF37;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            pointer-events: none;
+            pointer-events: auto;
             transform: translate(-50%, -50%);
             z-index: 500;
-            cursor: text;
+            cursor: pointer;
             padding: 4px 8px;
             border-radius: 4px;
             background: rgba(0,0,0,0.7);
@@ -195,6 +217,7 @@
             border-radius: 6px;
             color: #D4AF37;
             font-size: 14px;
+            box-sizing: border-box;
         }
 
         .text-input-dialog input:focus,
@@ -250,7 +273,7 @@
         .placeholder-map {
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #2F4F2F, #8FBC8F, #228B22, #32CD32);
+            background: #4A90E2;
             position: relative;
             display: flex;
             align-items: center;
@@ -280,7 +303,9 @@
                 <p>Upload your world map image using the file input on the left to begin exploring your realm!</p>
             </div>
         </div>
-        <img class="map-image" id="mapImage" style="display: none;" alt="Fantasy World Map">
+        <div class="map-wrapper" id="mapWrapper" style="display: none;">
+            <img class="map-image" id="mapImage" alt="Fantasy World Map">
+        </div>
     </div>
 
     <div class="info-panel">
@@ -300,6 +325,8 @@
                 <li>🖱️ Double-click to add region markers</li>
                 <li>📝 Use 'T' button then click to add text</li>
                 <li>🎯 Hover over markers for tooltips</li>
+                <li>✏️ Double-click text to edit</li>
+                <li>🗑️ Right-click text to delete</li>
             </ul>
         </div>
     </div>
@@ -317,6 +344,7 @@
         class FantasyMapViewer {
             constructor() {
                 this.container = document.getElementById('mapContainer');
+                this.wrapper = document.getElementById('mapWrapper');
                 this.image = document.getElementById('mapImage');
                 this.placeholder = document.getElementById('placeholderMap');
                 this.zoomDisplay = document.getElementById('zoomDisplay');
@@ -331,8 +359,13 @@
                 this.textLabels = [];
                 this.textMode = false;
                 
-                this.minZoom = 0.1;
+                this.minZoom = 0.2;
                 this.maxZoom = 5;
+                
+                this.imageNaturalWidth = 0;
+                this.imageNaturalHeight = 0;
+                this.imageDisplayWidth = 0;
+                this.imageDisplayHeight = 0;
                 
                 this.initializeEventListeners();
             }
@@ -357,7 +390,7 @@
                 });
 
                 document.getElementById('clearMarkers').addEventListener('click', () => {
-                    this.clearRegionMarkers();
+                    this.clearAll();
                 });
 
                 document.getElementById('addText').addEventListener('click', () => {
@@ -366,7 +399,7 @@
 
                 // Mouse events for panning
                 this.container.addEventListener('mousedown', (e) => {
-                    if (e.target === this.image || e.target === this.container) {
+                    if (e.target === this.image || e.target === this.wrapper || e.target === this.container) {
                         this.startDragging(e);
                     }
                 });
@@ -382,26 +415,42 @@
                 // Zoom with scroll wheel
                 this.container.addEventListener('wheel', (e) => {
                     e.preventDefault();
-                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-                    this.zoom(zoomFactor, e.clientX, e.clientY);
+                    if (this.wrapper.style.display !== 'none') {
+                        const rect = this.container.getBoundingClientRect();
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                        this.zoom(zoomFactor, centerX, centerY);
+                    }
                 });
 
-                // Double-click to add region marker, single click for text in text mode
+                // Double-click to add region marker
                 this.container.addEventListener('dblclick', (e) => {
-                    if (this.image.style.display !== 'none' && !this.textMode) {
+                    if (this.wrapper.style.display !== 'none' && !this.textMode) {
+                        e.preventDefault();
                         this.addRegionMarker(e);
                     }
                 });
 
+                // Single click for text in text mode
                 this.container.addEventListener('click', (e) => {
-                    if (this.textMode && this.image.style.display !== 'none') {
-                        this.addTextLabel(e);
+                    if (this.textMode && this.wrapper.style.display !== 'none') {
+                        if (!e.target.classList.contains('control-btn') && 
+                            !e.target.classList.contains('region-marker') &&
+                            !e.target.classList.contains('text-label')) {
+                            this.addTextLabel(e);
+                        }
                     }
                 });
 
-                // Prevent context menu
+                // Prevent context menu on container
                 this.container.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    this.resetView();
                 });
             }
 
@@ -412,12 +461,35 @@
                 reader.onload = (e) => {
                     this.image.src = e.target.result;
                     this.image.onload = () => {
+                        this.imageNaturalWidth = this.image.naturalWidth;
+                        this.imageNaturalHeight = this.image.naturalHeight;
+                        
                         this.placeholder.style.display = 'none';
-                        this.image.style.display = 'block';
+                        this.wrapper.style.display = 'flex';
                         this.resetView();
                     };
                 };
                 reader.readAsDataURL(file);
+            }
+
+            calculateImageDimensions() {
+                const containerWidth = this.container.clientWidth;
+                const containerHeight = this.container.clientHeight;
+                const imageRatio = this.imageNaturalWidth / this.imageNaturalHeight;
+                const containerRatio = containerWidth / containerHeight;
+
+                if (imageRatio > containerRatio) {
+                    // Image is wider relative to container
+                    this.imageDisplayWidth = Math.min(containerWidth * 0.9, this.imageNaturalWidth);
+                    this.imageDisplayHeight = this.imageDisplayWidth / imageRatio;
+                } else {
+                    // Image is taller relative to container
+                    this.imageDisplayHeight = Math.min(containerHeight * 0.9, this.imageNaturalHeight);
+                    this.imageDisplayWidth = this.imageDisplayHeight * imageRatio;
+                }
+
+                this.image.style.width = this.imageDisplayWidth + 'px';
+                this.image.style.height = this.imageDisplayHeight + 'px';
             }
 
             startDragging(e) {
@@ -444,7 +516,7 @@
 
             stopDragging() {
                 this.isDragging = false;
-                this.container.style.cursor = 'grab';
+                this.container.style.cursor = this.textMode ? 'crosshair' : 'grab';
             }
 
             zoom(factor, centerX = null, centerY = null) {
@@ -452,22 +524,30 @@
                 
                 if (newScale === this.scale) return;
 
-                // Calculate zoom center
+                // Use center of container if no specific center provided
                 const rect = this.container.getBoundingClientRect();
-                const zoomCenterX = centerX !== null ? centerX - rect.left : rect.width / 2;
-                const zoomCenterY = centerY !== null ? centerY - rect.top : rect.height / 2;
+                const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
+                const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
 
-                // Adjust translation to zoom towards center
-                const scaleRatio = newScale / this.scale;
-                this.translateX = zoomCenterX - (zoomCenterX - this.translateX) * scaleRatio;
-                this.translateY = zoomCenterY - (zoomCenterY - this.translateY) * scaleRatio;
+                // Calculate the point we're zooming towards relative to the current transform
+                const pointBeforeZoomX = (zoomCenterX - this.translateX) / this.scale;
+                const pointBeforeZoomY = (zoomCenterY - this.translateY) / this.scale;
 
+                // Update scale
                 this.scale = newScale;
+
+                // Calculate new translation to keep the zoom point in the same place
+                this.translateX = zoomCenterX - pointBeforeZoomX * this.scale;
+                this.translateY = zoomCenterY - pointBeforeZoomY * this.scale;
+
                 this.updateTransform();
                 this.updateZoomDisplay();
             }
 
             resetView() {
+                if (this.wrapper.style.display === 'none') return;
+                
+                this.calculateImageDimensions();
                 this.scale = 1;
                 this.translateX = 0;
                 this.translateY = 0;
@@ -476,20 +556,25 @@
             }
 
             updateTransform() {
-                if (this.image.style.display !== 'none') {
-                    this.image.style.transform = 
+                if (this.wrapper.style.display !== 'none') {
+                    this.wrapper.style.transform = 
                         `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
                 }
                 
-                // Update region markers and text labels
+                // Update region markers positions
                 this.regions.forEach(region => {
-                    region.element.style.transform = 
-                        `translate(${this.translateX + region.x * this.scale}px, ${this.translateY + region.y * this.scale}px) translate(-50%, -50%)`;
+                    const screenX = region.relativeX * this.imageDisplayWidth * this.scale + this.translateX;
+                    const screenY = region.relativeY * this.imageDisplayHeight * this.scale + this.translateY;
+                    region.element.style.left = screenX + 'px';
+                    region.element.style.top = screenY + 'px';
                 });
 
+                // Update text labels positions
                 this.textLabels.forEach(label => {
-                    label.element.style.transform = 
-                        `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
+                    const screenX = label.relativeX * this.imageDisplayWidth * this.scale + this.translateX;
+                    const screenY = label.relativeY * this.imageDisplayHeight * this.scale + this.translateY;
+                    label.element.style.left = screenX + 'px';
+                    label.element.style.top = screenY + 'px';
                     label.element.style.fontSize = Math.max(10, label.baseSize * this.scale) + 'px';
                 });
             }
@@ -500,16 +585,24 @@
 
             addRegionMarker(e) {
                 const rect = this.container.getBoundingClientRect();
-                const x = (e.clientX - rect.left - this.translateX) / this.scale;
-                const y = (e.clientY - rect.top - this.translateY) / this.scale;
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+
+                // Convert to relative position on the image (0-1)
+                const imageRect = this.getImageScreenBounds();
+                const relativeX = (clickX - imageRect.left) / imageRect.width;
+                const relativeY = (clickY - imageRect.top) / imageRect.height;
+
+                // Check if click is within image bounds
+                if (relativeX < 0 || relativeX > 1 || relativeY < 0 || relativeY > 1) {
+                    return;
+                }
 
                 const regionName = prompt('Enter region name:');
                 if (!regionName) return;
 
                 const marker = document.createElement('div');
                 marker.className = 'region-marker';
-                marker.style.left = '0px';
-                marker.style.top = '0px';
 
                 const tooltip = document.createElement('div');
                 tooltip.className = 'region-tooltip';
@@ -523,51 +616,64 @@
 
                 this.container.appendChild(marker);
 
-                const region = { element: marker, x: x, y: y, name: regionName };
+                const region = { 
+                    element: marker, 
+                    relativeX: relativeX, 
+                    relativeY: relativeY, 
+                    name: regionName 
+                };
                 this.regions.push(region);
 
                 this.updateTransform();
-            }
-
-            clearRegionMarkers() {
-                this.regions.forEach(region => {
-                    region.element.remove();
-                });
-                this.regions = [];
-
-                this.textLabels.forEach(label => {
-                    label.element.remove();
-                });
-                this.textLabels = [];
             }
 
             toggleTextMode() {
                 this.textMode = !this.textMode;
                 const textBtn = document.getElementById('addText');
                 if (this.textMode) {
-                    textBtn.style.background = 'rgba(212, 175, 55, 0.8)';
-                    textBtn.style.color = '#1a1a1a';
+                    textBtn.classList.add('active');
                     this.container.style.cursor = 'crosshair';
                 } else {
-                    textBtn.style.background = '';
-                    textBtn.style.color = '#D4AF37';
+                    textBtn.classList.remove('active');
                     this.container.style.cursor = 'grab';
                 }
             }
 
             addTextLabel(e) {
-                if (e.target.classList.contains('region-marker') || e.target.classList.contains('control-btn')) {
+                const rect = this.container.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+
+                // Convert to relative position on the image (0-1)
+                const imageRect = this.getImageScreenBounds();
+                const relativeX = (clickX - imageRect.left) / imageRect.width;
+                const relativeY = (clickY - imageRect.top) / imageRect.height;
+
+                // Check if click is within image bounds
+                if (relativeX < 0 || relativeX > 1 || relativeY < 0 || relativeY > 1) {
                     return;
                 }
 
-                const rect = this.container.getBoundingClientRect();
-                const x = (e.clientX - rect.left - this.translateX) / this.scale;
-                const y = (e.clientY - rect.top - this.translateY) / this.scale;
-
-                this.showTextDialog(x, y);
+                this.showTextDialog(relativeX, relativeY);
             }
 
-            showTextDialog(x, y) {
+            getImageScreenBounds() {
+                const containerRect = this.container.getBoundingClientRect();
+                const centerX = containerRect.width / 2;
+                const centerY = containerRect.height / 2;
+
+                const scaledWidth = this.imageDisplayWidth * this.scale;
+                const scaledHeight = this.imageDisplayHeight * this.scale;
+
+                return {
+                    left: centerX + this.translateX - scaledWidth / 2,
+                    top: centerY + this.translateY - scaledHeight / 2,
+                    width: scaledWidth,
+                    height: scaledHeight
+                };
+            }
+
+            showTextDialog(relativeX, relativeY) {
                 const dialog = document.createElement('div');
                 dialog.className = 'text-input-dialog';
                 dialog.innerHTML = `
@@ -606,7 +712,7 @@
                 document.getElementById('addTextBtn').addEventListener('click', () => {
                     const text = textInput.value.trim();
                     if (text) {
-                        this.createTextLabel(x, y, text, parseInt(textSize.value), textColor.value);
+                        this.createTextLabel(relativeX, relativeY, text, parseInt(textSize.value), textColor.value);
                     }
                     dialog.remove();
                     this.toggleTextMode(); // Exit text mode after adding
@@ -616,14 +722,12 @@
                     dialog.remove();
                 });
 
-                // Enter key to confirm
                 textInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         document.getElementById('addTextBtn').click();
                     }
                 });
 
-                // Escape key to cancel
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && document.contains(dialog)) {
                         dialog.remove();
@@ -631,22 +735,18 @@
                 });
             }
 
-            createTextLabel(x, y, text, size, color) {
+            createTextLabel(relativeX, relativeY, text, size, color) {
                 const label = document.createElement('div');
                 label.className = 'text-label';
                 label.textContent = text;
                 label.style.color = color;
                 label.style.fontSize = size + 'px';
-                label.style.left = '0px';
-                label.style.top = '0px';
 
-                // Double-click to edit
                 label.addEventListener('dblclick', (e) => {
                     e.stopPropagation();
-                    this.editTextLabel(label, x, y, size, color);
+                    this.editTextLabel(label, relativeX, relativeY, size, color);
                 });
 
-                // Right-click to delete
                 label.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     if (confirm('Delete this text label?')) {
@@ -662,8 +762,8 @@
 
                 const textLabel = { 
                     element: label, 
-                    x: x, 
-                    y: y, 
+                    relativeX: relativeX, 
+                    relativeY: relativeY, 
                     text: text, 
                     baseSize: size, 
                     color: color 
@@ -673,7 +773,7 @@
                 this.updateTransform();
             }
 
-            editTextLabel(labelElement, x, y, currentSize, currentColor) {
+            editTextLabel(labelElement, relativeX, relativeY, currentSize, currentColor) {
                 const currentText = labelElement.textContent;
                 
                 const dialog = document.createElement('div');
@@ -717,27 +817,3 @@
                     if (newText) {
                         labelElement.textContent = newText;
                         labelElement.style.color = textColor.value;
-                        labelElement.style.fontSize = textSize.value + 'px';
-                        
-                        // Update the stored label data
-                        const labelData = this.textLabels.find(l => l.element === labelElement);
-                        if (labelData) {
-                            labelData.text = newText;
-                            labelData.baseSize = parseInt(textSize.value);
-                            labelData.color = textColor.value;
-                        }
-                    }
-                    dialog.remove();
-                });
-
-                document.getElementById('cancelEdit').addEventListener('click', () => {
-                    dialog.remove();
-                });
-            }
-        }
-
-        // Initialize the map viewer
-        const mapViewer = new FantasyMapViewer();
-    </script>
-</body>
-</html>
