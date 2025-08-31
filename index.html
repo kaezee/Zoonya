@@ -84,15 +84,18 @@
 
         .role-indicator {
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.8);
             padding: 8px 15px;
-            border-radius: 20px;
+            border-radius: 8px;
             border: 2px solid #8B4513;
             color: #D4AF37;
             font-size: 12px;
             z-index: 1001;
+            min-width: 50px;
+            text-align: center;
+            font-weight: bold;
         }
 
         .role-indicator.admin {
@@ -107,10 +110,21 @@
             overflow: hidden;
             cursor: grab;
             background: #00A5D2;
+            /* Dark blue vignette effect */
+            background: radial-gradient(ellipse at center, #00A5D2 0%, #00A5D2 60%, #003d5c 100%);
         }
 
         .map-container:active {
             cursor: grabbing;
+        }
+
+        .map-bounds {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
 
         .map-image {
@@ -123,7 +137,7 @@
 
         .controls {
             position: fixed;
-            top: 20px;
+            top: 70px;
             right: 20px;
             z-index: 1000;
             display: flex;
@@ -716,6 +730,9 @@
                 this.translateX += deltaX;
                 this.translateY += deltaY;
 
+                // Constrain translation to prevent going too far
+                this.constrainTranslation();
+
                 this.updateTransform();
 
                 this.lastMouseX = e.clientX;
@@ -741,6 +758,11 @@
                 this.translateY = zoomCenterY - (zoomCenterY - this.translateY) * scaleRatio;
 
                 this.scale = newScale;
+                
+                // Update bounds and constrain
+                this.setBounds();
+                this.constrainTranslation();
+                
                 this.updateTransform();
                 this.updateZoomDisplay();
             }
@@ -749,23 +771,42 @@
                 if (this.image.style.display === 'none') return;
                 
                 const containerRect = this.container.getBoundingClientRect();
+                const imageWidth = this.image.naturalWidth;
+                const imageHeight = this.image.naturalHeight;
                 
-                this.scale = 1;
-                this.translateX = (containerRect.width - this.image.naturalWidth) / 2;
-                this.translateY = (containerRect.height - this.image.naturalHeight) / 2;
+                // Calculate scale to fit image with some padding
+                const scaleX = (containerRect.width * 0.8) / imageWidth;
+                const scaleY = (containerRect.height * 0.8) / imageHeight;
+                this.scale = Math.min(scaleX, scaleY, 1);
                 
-                const scaleX = containerRect.width / this.image.naturalWidth;
-                const scaleY = containerRect.height / this.image.naturalHeight;
-                const fitScale = Math.min(scaleX, scaleY, 1);
+                // Center the image
+                this.translateX = (containerRect.width - imageWidth * this.scale) / 2;
+                this.translateY = (containerRect.height - imageHeight * this.scale) / 2;
                 
-                if (fitScale < 1) {
-                    this.scale = fitScale * 0.9;
-                    this.translateX = (containerRect.width - this.image.naturalWidth * this.scale) / 2;
-                    this.translateY = (containerRect.height - this.image.naturalHeight * this.scale) / 2;
-                }
+                // Set bounds for panning
+                this.setBounds();
                 
                 this.updateTransform();
                 this.updateZoomDisplay();
+            }
+
+            setBounds() {
+                const containerRect = this.container.getBoundingClientRect();
+                const scaledWidth = this.image.naturalWidth * this.scale;
+                const scaledHeight = this.image.naturalHeight * this.scale;
+                
+                // Calculate maximum translation bounds
+                this.maxTranslateX = Math.max(0, (scaledWidth - containerRect.width) / 2 + 100);
+                this.maxTranslateY = Math.max(0, (scaledHeight - containerRect.height) / 2 + 100);
+                this.minTranslateX = Math.min(0, (containerRect.width - scaledWidth) / 2 - 100);
+                this.minTranslateY = Math.min(0, (containerRect.height - scaledHeight) / 2 - 100);
+            }
+
+            constrainTranslation() {
+                if (!this.maxTranslateX) return;
+                
+                this.translateX = Math.max(this.minTranslateX, Math.min(this.maxTranslateX, this.translateX));
+                this.translateY = Math.max(this.minTranslateY, Math.min(this.maxTranslateY, this.translateY));
             }
 
             updateTransform() {
