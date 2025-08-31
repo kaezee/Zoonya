@@ -132,7 +132,9 @@
             transition: transform 0.1s ease-out;
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
-            transform-origin: center center;
+            transform-origin: top left;
+            top: 0;
+            left: 0;
         }
 
         .controls {
@@ -688,7 +690,9 @@
                     this.image.onload = () => {
                         this.placeholder.style.display = 'none';
                         this.image.style.display = 'block';
-                        this.resetView();
+                        setTimeout(() => {
+                            this.resetView();
+                        }, 50);
                     };
                     this.image.onerror = () => {
                         console.log("Default map couldn't load, showing placeholder");
@@ -705,7 +709,10 @@
                     this.image.onload = () => {
                         this.placeholder.style.display = 'none';
                         this.image.style.display = 'block';
-                        this.resetView();
+                        // Small delay to ensure image dimensions are available
+                        setTimeout(() => {
+                            this.resetView();
+                        }, 50);
                         if (this.userRole === 'admin' && CONFIG.ENABLE_SAVE) {
                             this.saveImageData(e.target.result);
                         }
@@ -753,11 +760,16 @@
                 const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
                 const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
 
-                const scaleRatio = newScale / this.scale;
-                this.translateX = zoomCenterX - (zoomCenterX - this.translateX) * scaleRatio;
-                this.translateY = zoomCenterY - (zoomCenterY - this.translateY) * scaleRatio;
+                // Calculate the point in the image coordinates that we're zooming towards
+                const imagePointX = (zoomCenterX - this.translateX) / this.scale;
+                const imagePointY = (zoomCenterY - this.translateY) / this.scale;
 
+                // Update scale
                 this.scale = newScale;
+
+                // Calculate new translation to keep the zoom point in the same screen position
+                this.translateX = zoomCenterX - imagePointX * this.scale;
+                this.translateY = zoomCenterY - imagePointY * this.scale;
                 
                 // Update bounds and constrain
                 this.setBounds();
@@ -1079,7 +1091,9 @@
                         this.image.onload = () => {
                             this.placeholder.style.display = 'none';
                             this.image.style.display = 'block';
-                            this.resetView();
+                            setTimeout(() => {
+                                this.resetView();
+                            }, 50);
                         };
                     }
 
