@@ -135,6 +135,9 @@
             transform-origin: top left;
             top: 0;
             left: 0;
+            /* Optimize for large images */
+            will-change: transform;
+            backface-visibility: hidden;
         }
 
         .controls {
@@ -145,6 +148,59 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+        }
+
+        .marker-upload-container {
+            position: fixed;
+            top: 20px;
+            left: 350px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #8B4513;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .marker-upload-container h3 {
+            color: #D4AF37;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+
+        .custom-marker {
+            position: absolute;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            z-index: 500;
+            max-width: 40px;
+            max-height: 40px;
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6));
+        }
+
+        .custom-marker:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.9));
+        }
+
+        .delete-mode {
+            background: rgba(255, 100, 100, 0.8) !important;
+            color: white !important;
+        }
+
+        .text-label.delete-mode:hover {
+            background: rgba(255, 50, 50, 0.9) !important;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .marker-preview {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #8B4513;
+            border-radius: 4px;
+            margin: 5px 0;
+            cursor: pointer;
         }
 
         .control-btn {
@@ -502,10 +558,11 @@
                 <li>🔍 Use zoom buttons or scroll wheel</li>
                 <li id="markerInstruction" style="display: none;">🖱️ Double-click to add region markers</li>
                 <li id="textInstruction" style="display: none;">📝 Use 'T' button then click to add text</li>
+                <li id="customMarkerInstruction" style="display: none;">📍 Upload PNG markers and click to place</li>
+                <li id="deleteInstruction" style="display: none;">✂️ Use delete mode to remove individual items</li>
                 <li>🎯 Hover over markers for tooltips</li>
                 <li id="editInstructions" style="display: none;">
                     <li>✏️ Double-click text to edit</li>
-                    <li>🗑️ Right-click text to delete</li>
                 </li>
             </ul>
         </div>
@@ -517,7 +574,15 @@
         <button class="control-btn" id="zoomOut">-</button>
         <button class="control-btn" id="resetView">⌂</button>
         <button class="control-btn admin-only" id="addText" style="display: none;">T</button>
+        <button class="control-btn admin-only" id="addMarker" style="display: none;">📍</button>
+        <button class="control-btn admin-only" id="deleteMode" style="display: none;">✂️</button>
         <button class="control-btn admin-only" id="clearMarkers" style="display: none;">🗑️</button>
+    </div>
+
+    <div class="marker-upload-container" id="markerUpload">
+        <h3>Custom Markers</h3>
+        <input type="file" id="markerFile" accept="image/png,image/svg+xml" multiple style="font-size: 12px; color: #D4AF37;">
+        <div id="markerPreviews"></div>
     </div>
 
     <button class="logout-btn" onclick="logout()" style="display: none;" id="logoutBtn">🚪 Logout</button>
@@ -546,7 +611,12 @@
                 this.lastMouseY = 0;
                 this.regions = [];
                 this.textLabels = [];
+                this.customMarkers = [];
+                this.markerImages = [];
+                this.selectedMarkerImage = null;
                 this.textMode = false;
+                this.markerMode = false;
+                this.deleteMode = false;
                 this.userRole = 'viewer';
                 
                 this.minZoom = 0.2;
@@ -590,6 +660,25 @@
                     }
                 });
 
+                document.getElementById('addMarker').addEventListener('click', () => {
+                    if (this.userRole === 'admin') {
+                        this.toggleMarkerMode();
+                    }
+                });
+
+                document.getElementById('deleteMode').addEventListener('click', () => {
+                    if (this.userRole === 'admin') {
+                        this.toggleDeleteMode();
+                    }
+                });
+
+                // Custom marker upload
+                document.getElementById('markerFile').addEventListener('change', (e) => {
+                    if (this.userRole === 'admin') {
+                        this.loadCustomMarkers(e.target.files);
+                    }
+                });
+
                 // Mouse events
                 this.container.addEventListener('mousedown', (e) => {
                     if (e.target === this.image || e.target === this.container) {
@@ -623,13 +712,28 @@
                     }
                 });
 
-                // Single click for text in text mode (admin only)
+                // Single click for text or markers in respective modes
                 this.container.addEventListener('click', (e) => {
-                    if (this.textMode && this.image.style.display !== 'none' && this.userRole === 'admin') {
-                        if (!e.target.classList.contains('control-btn') && 
-                            !e.target.classList.contains('region-marker') &&
-                            !e.target.classList.contains('text-label')) {
+                    if (this.image.style.display === 'none') return;
+                    
+                    if (!e.target.classList.contains('control-btn') && 
+                        !e.target.classList.contains('region-marker') &&
+                        !e.target.classList.contains('text-label') &&
+                        !e.target.classList.contains('custom-marker')) {
+                        
+                        if (this.textMode && this.userRole === 'admin') {
                             this.addTextLabel(e);
+                        } else if (this.markerMode && this.userRole === 'admin' && this.selectedMarkerImage) {
+                            this.addCustomMarker(e);
+                        }
+                    }
+                    
+                    // Handle delete mode clicks
+                    if (this.deleteMode && this.userRole === 'admin') {
+                        if (e.target.classList.contains('text-label')) {
+                            this.deleteTextLabel(e.target);
+                        } else if (e.target.classList.contains('custom-marker')) {
+                            this.deleteCustomMarker(e.target);
                         }
                     }
                 });
@@ -668,10 +772,15 @@
                     
                     // Show admin controls
                     document.getElementById('addText').style.display = 'block';
+                    document.getElementById('addMarker').style.display = 'block';
+                    document.getElementById('deleteMode').style.display = 'block';
                     document.getElementById('clearMarkers').style.display = 'block';
                     document.getElementById('markerInstruction').style.display = 'list-item';
                     document.getElementById('textInstruction').style.display = 'list-item';
+                    document.getElementById('customMarkerInstruction').style.display = 'list-item';
+                    document.getElementById('deleteInstruction').style.display = 'list-item';
                     document.getElementById('editInstructions').style.display = 'block';
+                    document.getElementById('markerUpload').style.display = 'block';
                 } else {
                     roleIndicator.textContent = 'Viewer';
                     roleIndicator.classList.remove('admin');
@@ -680,7 +789,17 @@
                     
                     // Hide admin controls
                     document.getElementById('addText').style.display = 'none';
+                    document.getElementById('addMarker').style.display = 'none';
+                    document.getElementById('deleteMode').style.display = 'none';
                     document.getElementById('clearMarkers').style.display = 'none';
+                    document.getElementById('markerUpload').style.display = 'none';
+                    
+                    // Hide admin-only instructions
+                    document.getElementById('markerInstruction').style.display = 'none';
+                    document.getElementById('textInstruction').style.display = 'none';
+                    document.getElementById('customMarkerInstruction').style.display = 'none';
+                    document.getElementById('deleteInstruction').style.display = 'none';
+                    document.getElementById('editInstructions').style.display = 'none';
                 }
             }
 
@@ -792,14 +911,31 @@
                 const imageWidth = this.image.naturalWidth;
                 const imageHeight = this.image.naturalHeight;
                 
-                // Calculate scale to fit image with some padding
-                const scaleX = (containerRect.width * 0.8) / imageWidth;
-                const scaleY = (containerRect.height * 0.8) / imageHeight;
-                this.scale = Math.min(scaleX, scaleY, 1);
+                console.log(`Container: ${containerRect.width}x${containerRect.height}, Image: ${imageWidth}x${imageHeight}`);
                 
-                // Center the image
+                // For very large images, use a smaller initial scale
+                const maxDimension = Math.max(imageWidth, imageHeight);
+                let targetScale;
+                
+                if (maxDimension > 3000) {
+                    // Large image - scale to fit with more margin
+                    const scaleX = (containerRect.width * 0.6) / imageWidth;
+                    const scaleY = (containerRect.height * 0.6) / imageHeight;
+                    targetScale = Math.min(scaleX, scaleY, 0.5);
+                } else {
+                    // Normal image scaling
+                    const scaleX = (containerRect.width * 0.8) / imageWidth;
+                    const scaleY = (containerRect.height * 0.8) / imageHeight;
+                    targetScale = Math.min(scaleX, scaleY, 1);
+                }
+                
+                this.scale = targetScale;
+                
+                // Center the image precisely
                 this.translateX = (containerRect.width - imageWidth * this.scale) / 2;
                 this.translateY = (containerRect.height - imageHeight * this.scale) / 2;
+                
+                console.log(`Final scale: ${this.scale}, Position: ${this.translateX}, ${this.translateY}`);
                 
                 // Set bounds for panning
                 this.setBounds();
@@ -842,6 +978,15 @@
                     label.element.style.transform = 
                         `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
                     label.element.style.fontSize = Math.max(10, label.baseSize * this.scale) + 'px';
+                });
+
+                // Update custom markers positions
+                this.customMarkers.forEach(marker => {
+                    marker.element.style.transform = 
+                        `translate(${this.translateX + marker.x * this.scale}px, ${this.translateY + marker.y * this.scale}px) translate(-50%, -50%)`;
+                    const size = Math.max(20, 40 * this.scale);
+                    marker.element.style.maxWidth = size + 'px';
+                    marker.element.style.maxHeight = size + 'px';
                 });
             }
 
@@ -969,26 +1114,15 @@
                 label.style.left = '0px';
                 label.style.top = '0px';
 
-                // Only admin can edit/delete
-                if (this.userRole === 'admin') {
+                // Only admin can edit/delete with double-click
+                if (this.userRole === 'admin' && !this.deleteMode) {
                     label.addEventListener('dblclick', (e) => {
                         e.stopPropagation();
                         this.editTextLabel(label, x, y, size, color);
                     });
-
-                    label.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        if (confirm('Delete this text label?')) {
-                            const index = this.textLabels.findIndex(l => l.element === label);
-                            if (index !== -1) {
-                                this.textLabels.splice(index, 1);
-                                label.remove();
-                                if (CONFIG.ENABLE_SAVE) this.autoSave();
-                            }
-                        }
-                    });
                 }
 
+                // Remove right-click deletion - now handled by delete mode
                 this.container.appendChild(label);
 
                 const textLabel = { 
@@ -1084,32 +1218,57 @@
                 }
             }
 
-            // Save/Load functionality
+            // Save/Load functionality - Fixed for cross-system persistence
             saveImageData(imageData) {
-                localStorage.setItem('zoonya_map_image', imageData);
+                if (CONFIG.ENABLE_SAVE) {
+                    localStorage.setItem('zoonya_map_image', imageData);
+                    // Also save to a more persistent key
+                    localStorage.setItem('zoonya_default_map', imageData);
+                }
             }
 
             loadSavedData() {
                 try {
-                    const savedImage = localStorage.getItem('zoonya_map_image');
-                    if (savedImage) {
+                    // Try to load saved image first, then default map
+                    let savedImage = localStorage.getItem('zoonya_map_image');
+                    if (!savedImage) {
+                        savedImage = localStorage.getItem('zoonya_default_map');
+                    }
+                    
+                    if (savedImage && savedImage !== "data:,") {
                         this.image.src = savedImage;
                         this.image.onload = () => {
                             this.placeholder.style.display = 'none';
                             this.image.style.display = 'block';
                             setTimeout(() => {
                                 this.resetView();
+                                // Load map data after image is loaded
+                                this.loadMapDataFromStorage();
                             }, 50);
                         };
+                        this.image.onerror = () => {
+                            console.log('Saved image failed to load, trying default map');
+                            this.loadDefaultMap();
+                        };
+                    } else {
+                        // No saved image, try default map
+                        this.loadDefaultMap();
                     }
+                } catch (e) {
+                    console.log('Error loading saved data:', e);
+                    this.loadDefaultMap();
+                }
+            }
 
+            loadMapDataFromStorage() {
+                try {
                     const savedData = localStorage.getItem('zoonya_map_data');
                     if (savedData) {
                         const data = JSON.parse(savedData);
                         this.loadMapFromData(data);
                     }
                 } catch (e) {
-                    console.log('No saved data found');
+                    console.log('Error loading map data:', e);
                 }
             }
 
@@ -1129,17 +1288,43 @@
                         baseSize: l.baseSize,
                         color: l.color
                     })),
+                    customMarkers: this.customMarkers.map(m => ({
+                        x: m.x,
+                        y: m.y,
+                        imageData: m.imageData
+                    })),
+                    markerImages: this.markerImages,
                     scale: this.scale,
                     translateX: this.translateX,
-                    translateY: this.translateY
+                    translateY: this.translateY,
+                    lastSaved: new Date().toISOString()
                 };
                 
                 localStorage.setItem('zoonya_map_data', JSON.stringify(mapData));
+                console.log('Auto-saved map data at', new Date().toLocaleTimeString());
             }
 
             loadMapFromData(data) {
-                // Clear existing
-                this.clearAll();
+                // Clear existing elements (but don't clear arrays yet)
+                this.regions.forEach(region => region.element.remove());
+                this.textLabels.forEach(label => label.element.remove());
+                this.customMarkers.forEach(marker => marker.element.remove());
+                
+                // Reset arrays
+                this.regions = [];
+                this.textLabels = [];
+                this.customMarkers = [];
+                
+                // Load marker images first
+                if (data.markerImages) {
+                    this.markerImages = data.markerImages;
+                    // Restore marker previews
+                    const previewContainer = document.getElementById('markerPreviews');
+                    previewContainer.innerHTML = '';
+                    this.markerImages.forEach(markerData => {
+                        this.displayMarkerPreview(markerData);
+                    });
+                }
                 
                 // Load regions
                 if (data.regions) {
@@ -1182,14 +1367,40 @@
                     });
                 }
                 
-                // Restore view
-                if (data.scale) {
+                // Load custom markers
+                if (data.customMarkers) {
+                    data.customMarkers.forEach(markerData => {
+                        const markerElement = document.createElement('img');
+                        markerElement.src = markerData.imageData.data;
+                        markerElement.className = 'custom-marker';
+                        markerElement.style.left = '0px';
+                        markerElement.style.top = '0px';
+                        markerElement.title = markerData.imageData.name;
+
+                        this.container.appendChild(markerElement);
+
+                        this.customMarkers.push({
+                            element: markerElement,
+                            x: markerData.x,
+                            y: markerData.y,
+                            imageData: markerData.imageData
+                        });
+                    });
+                }
+                
+                // Restore view if available
+                if (data.scale && this.image.style.display !== 'none') {
                     this.scale = data.scale;
                     this.translateX = data.translateX || 0;
                     this.translateY = data.translateY || 0;
                     this.updateTransform();
                     this.updateZoomDisplay();
+                } else {
+                    // Just update positions without changing view
+                    this.updateTransform();
                 }
+                
+                console.log('Map data loaded successfully');
             }
         }
 
