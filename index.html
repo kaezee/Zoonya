@@ -709,10 +709,16 @@
                     this.image.onload = () => {
                         this.placeholder.style.display = 'none';
                         this.image.style.display = 'block';
-                        // Small delay to ensure image dimensions are available
+                        
+                        // For large images, wait longer for full processing
+                        const imageSize = this.image.naturalWidth * this.image.naturalHeight;
+                        const delay = imageSize > 4000000 ? 200 : 50; // 200ms for large images
+                        
                         setTimeout(() => {
+                            console.log(`Image loaded: ${this.image.naturalWidth}x${this.image.naturalHeight}`);
                             this.resetView();
-                        }, 50);
+                        }, delay);
+                        
                         if (this.userRole === 'admin' && CONFIG.ENABLE_SAVE) {
                             this.saveImageData(e.target.result);
                         }
