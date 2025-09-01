@@ -347,8 +347,14 @@
             padding: 4px 8px;
             border-radius: 4px;
             background: rgba(0,0,0,0.7);
-            border: 1px solid rgba(212, 175, 55, 0.5);
             white-space: nowrap;
+        }
+
+        .text-label.region-label {
+            border: none;
+            background: none;
+            font-size: 18px;
+            font-weight: bold;
         }
 
         .text-input-dialog {
@@ -507,10 +513,13 @@
 <body>
     <div id="authOverlay" class="auth-overlay">
         <div class="auth-dialog">
-            <h2>⭐ Enter the World of Zoonya</h2>
+            <h2>Explore the lands of Zoonya</h2>
             <p>Please enter the phrase:</p>
             <p style="color: #D4AF37; font-weight: bold; font-size: 18px; margin: 15px 0;">
-                <strong>Zoona-unna dua</strong> - <em>World-home to you</em>
+                <strong>[Zoona-unna dua]</strong>
+            </p>
+            <p style="color: #ccc; font-style: italic; font-size: 14px; margin-top: -10px;">
+                <em>(meaning "World home to you")</em>
             </p>
             <input type="text" id="accessKey" placeholder="Zoona-unna dua" maxlength="50">
             <div style="margin-top: 15px;">
@@ -725,24 +734,34 @@
                 this.container.addEventListener('click', (e) => {
                     if (this.image.style.display === 'none') return;
                     
+                    // Handle delete mode clicks first
+                    if (this.deleteMode && this.userRole === 'admin') {
+                        if (e.target.classList.contains('text-label')) {
+                            e.stopPropagation();
+                            this.deleteTextLabel(e.target);
+                            return;
+                        } else if (e.target.classList.contains('custom-marker')) {
+                            e.stopPropagation();
+                            this.deleteCustomMarker(e.target);
+                            return;
+                        } else if (e.target.classList.contains('region-marker')) {
+                            e.stopPropagation();
+                            this.deleteRegionMarker(e.target);
+                            return;
+                        }
+                    }
+                    
+                    // Handle adding new items (only if not clicking on existing items)
                     if (!e.target.classList.contains('control-btn') && 
                         !e.target.classList.contains('region-marker') &&
                         !e.target.classList.contains('text-label') &&
-                        !e.target.classList.contains('custom-marker')) {
+                        !e.target.classList.contains('custom-marker') &&
+                        !e.target.classList.contains('region-tooltip')) {
                         
                         if (this.textMode && this.userRole === 'admin') {
                             this.addTextLabel(e);
                         } else if (this.markerMode && this.userRole === 'admin' && this.selectedMarkerImage) {
                             this.addCustomMarker(e);
-                        }
-                    }
-                    
-                    // Handle delete mode clicks
-                    if (this.deleteMode && this.userRole === 'admin') {
-                        if (e.target.classList.contains('text-label')) {
-                            this.deleteTextLabel(e.target);
-                        } else if (e.target.classList.contains('custom-marker')) {
-                            this.deleteCustomMarker(e.target);
                         }
                     }
                 });
@@ -1014,8 +1033,10 @@
                 const x = (e.clientX - rect.left - this.translateX) / this.scale;
                 const y = (e.clientY - rect.top - this.translateY) / this.scale;
 
-                const regionName = prompt('Enter region name:');
+                const regionName = prompt('Enter region/landmark name:');
                 if (!regionName) return;
+                
+                const loreText = prompt('Enter lore/description for this place (optional):') || 'A mysterious place in the world of Zoonya...';
 
                 const marker = document.createElement('div');
                 marker.className = 'region-marker';
@@ -1029,12 +1050,12 @@
 
                 marker.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    alert(`Region: ${regionName}\nWelcome to ${regionName} in the world of Zoonya!`);
+                    alert(`${regionName}\n\n${loreText}`);
                 });
 
                 this.container.appendChild(marker);
 
-                const region = { element: marker, x: x, y: y, name: regionName };
+                const region = { element: marker, x: x, y: y, name: regionName, lore: loreText };
                 this.regions.push(region);
 
                 this.updateTransform();
@@ -1071,6 +1092,11 @@
                 dialog.innerHTML = `
                     <h3>Add Zoonya Map Text</h3>
                     <input type="text" id="textInput" placeholder="Enter text..." maxlength="50">
+                    <select id="textType">
+                        <option value="region">Region/Country Name</option>
+                        <option value="landmark">City/Landmark</option>
+                        <option value="other">Other Text</option>
+                    </select>
                     <select id="textSize">
                         <option value="12">Small (12px)</option>
                         <option value="16" selected>Medium (16px)</option>
@@ -1100,10 +1126,11 @@
 
                 document.getElementById('addTextBtn').addEventListener('click', () => {
                     const text = textInput.value.trim();
+                    const textType = document.getElementById('textType').value;
                     if (text) {
                         const size = parseInt(document.getElementById('textSize').value);
                         const color = document.getElementById('textColor').value;
-                        this.createTextLabel(x, y, text, size, color);
+                        this.createTextLabel(x, y, text, size, color, textType);
                     }
                     dialog.remove();
                     this.toggleTextMode();
@@ -1120,24 +1147,36 @@
                 });
             }
 
-            createTextLabel(x, y, text, size, color) {
+            createTextLabel(x, y, text, size, color, textType = 'other') {
                 const label = document.createElement('div');
                 label.className = 'text-label';
+                if (textType === 'region') {
+                    label.classList.add('region-label');
+                }
                 label.textContent = text;
                 label.style.color = color;
                 label.style.fontSize = size + 'px';
                 label.style.left = '0px';
                 label.style.top = '0px';
 
-                // Only admin can edit/delete with double-click
-                if (this.userRole === 'admin' && !this.deleteMode) {
+                // Only admin can edit/delete with double-click (when not in delete mode)
+                if (this.userRole === 'admin') {
                     label.addEventListener('dblclick', (e) => {
                         e.stopPropagation();
-                        this.editTextLabel(label, x, y, size, color);
+                        if (!this.deleteMode) {
+                            this.editTextLabel(label, x, y, size, color, textType);
+                        }
+                    });
+
+                    // Handle delete mode clicks
+                    label.addEventListener('click', (e) => {
+                        if (this.deleteMode) {
+                            e.stopPropagation();
+                            this.deleteTextLabel(label);
+                        }
                     });
                 }
 
-                // Remove right-click deletion - now handled by delete mode
                 this.container.appendChild(label);
 
                 const textLabel = { 
@@ -1146,7 +1185,8 @@
                     y: y, 
                     text: text, 
                     baseSize: size, 
-                    color: color 
+                    color: color,
+                    textType: textType
                 };
                 this.textLabels.push(textLabel);
 
@@ -1482,16 +1522,16 @@
 
         // Global functions for authentication and data management
         function authenticate() {
-            const key = document.getElementById('accessKey').value.trim();
+            const key = document.getElementById('accessKey').value.trim().toLowerCase();
             
-            if (key === CONFIG.ADMIN_KEY) {
+            if (key === CONFIG.ADMIN_KEY.toLowerCase()) {
                 document.getElementById('authOverlay').style.display = 'none';
                 window.zoonyaMapViewer.setUserRole('admin');
-            } else if (key === CONFIG.VIEWER_KEY) {
+            } else if (key === CONFIG.VIEWER_KEY.toLowerCase()) {
                 document.getElementById('authOverlay').style.display = 'none';
                 window.zoonyaMapViewer.setUserRole('viewer');
             } else {
-                alert('Invalid access key. Please try again.');
+                alert('Invalid phrase. Please try again.');
                 document.getElementById('accessKey').value = '';
             }
         }
