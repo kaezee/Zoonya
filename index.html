@@ -1,182 +1,4 @@
-} catch (e) {
-                    console.log('Could not load shared annotations:', e.message);
-                }
-            }
-
-            loadSharedAnnotations(data) {
-                // Load shared regions with lore
-                if (data.regions) {
-                    data.regions.forEach(regionData => {
-                        const marker = document.createElement('div');
-                        marker.className = 'region-marker';
-                        marker.style.left = '0px';
-                        marker.style.top = '0px';
-
-                        const tooltip = document.createElement('div');
-                        tooltip.className = 'region-tooltip';
-                        tooltip.textContent = regionData.name;
-                        marker.appendChild(tooltip);
-
-                        marker.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            alert(`${regionData.name}\n\n${regionData.lore || 'A mysterious place in Zoonya...'}`);
-                        });
-
-                        this.container.appendChild(marker);
-                        this.regions.push({
-                            element: marker,
-                            x: regionData.x,
-                            y: regionData.y,
-                            name: regionData.name,
-                            lore: regionData.lore || '',
-                            shared: true
-                        });
-                    });
-                }
-                
-                // Load shared text labels
-                if (data.textLabels) {
-                    data.textLabels.forEach(labelData => {
-                        this.createSharedTextLabel(labelData);
-                    });
-                }
-                
-                this.updateTransform();
-                console.log('Shared annotations loaded successfully');
-            }
-
-            createSharedTextLabel(labelData) {
-                const label = document.createElement('div');
-                label.className = 'text-label';
-                if (labelData.textType === 'region') {
-                    label.classList.add('region-label');
-                }
-                label.textContent = labelData.text;
-                label.style.color = labelData.color;
-                label.style.fontSize = labelData.baseSize + 'px';
-                label.style.left = '0px';
-                label.style.top = '0px';
-
-                this.container.appendChild(label);
-
-                this.textLabels.push({
-                    element: label,
-                    x: labelData.x,
-                    y: labelData.y,
-                    text: labelData.text,
-                    baseSize: labelData.baseSize,
-                    color: labelData.color,
-                    textType: labelData.textType || 'other',
-                    shared: true
-                });
-            }
-
-            loadImage(file) {
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.image.src = e.target.result;
-                    this.image.onload = () => {
-                        this.placeholder.style.display = 'none';
-                        this.image.style.display = 'block';
-                        setTimeout(() => {
-                            this.resetView();
-                        }, 100);
-                    };
-                };
-                reader.readAsDataURL(file);
-            }
-
-            startDragging(e) {
-                this.isDragging = true;
-                this.lastMouseX = e.clientX;
-                this.lastMouseY = e.clientY;
-                this.container.style.cursor = 'grabbing';
-            }
-
-            drag(e) {
-                if (!this.isDragging) return;
-
-                const deltaX = e.clientX - this.lastMouseX;
-                const deltaY = e.clientY - this.lastMouseY;
-
-                this.translateX += deltaX;
-                this.translateY += deltaY;
-
-                this.updateTransform();
-
-                this.lastMouseX = e.clientX;
-                this.lastMouseY = e.clientY;
-            }
-
-            stopDragging() {
-                this.isDragging = false;
-                this.container.style.cursor = this.textMode ? 'crosshair' : 'grab';
-            }
-
-            zoom(factor, centerX = null, centerY = null) {
-                const newScale = Math.max(this.minZoom, Math.min(this.maxZoom, this.scale * factor));
-                
-                if (newScale === this.scale) return;
-
-                const rect = this.container.getBoundingClientRect();
-                const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
-                const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
-
-                const imagePointX = (zoomCenterX - this.translateX) / this.scale;
-                const imagePointY = (zoomCenterY - this.translateY) / this.scale;
-
-                this.scale = newScale;
-
-                this.translateX = zoomCenterX - imagePointX * this.scale;
-                this.translateY = zoomCenterY - imagePointY * this.scale;
-                
-                this.updateTransform();
-                this.updateZoomDisplay();
-            }
-
-            resetView() {
-                if (this.image.style.display === 'none') return;
-                
-                const containerRect = this.container.getBoundingClientRect();
-                const imageWidth = this.image.naturalWidth;
-                const imageHeight = this.image.naturalHeight;
-                
-                const scaleX = (containerRect.width * 0.8) / imageWidth;
-                const scaleY = (containerRect.height * 0.8) / imageHeight;
-                this.scale = Math.min(scaleX, scaleY, 1);
-                
-                this.translateX = (containerRect.width - imageWidth * this.scale) / 2;
-                this.translateY = (containerRect.height - imageHeight * this.scale) / 2;
-                
-                this.updateTransform();
-                this.updateZoomDisplay();
-            }
-
-            updateTransform() {
-                if (this.image.style.display !== 'none') {
-                    this.image.style.transform = 
-                        `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
-                }
-                
-                this.regions.forEach(region => {
-                    region.element.style.transform = 
-                        `translate(${this.translateX + region.x * this.scale}px, ${this.translateY + region.y * this.scale}px) translate(-50%, -50%)`;
-                });
-
-                this.textLabels.forEach(label => {
-                    label.element.style.transform = 
-                        `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
-                    label.element.style.fontSize = Math.max(10, label.baseSize * this.scale) + 'px';
-                });
-            }
-
-            updateZoomDisplay() {
-                this.zoomDisplay.textContent = Math.round(this.scale * 100) + '%';
-            }
-
-            addRegionMarker(e) {
+addRegionMarker(e) {
                 const rect = this.container.getBoundingClientRect();
                 const x = (e.clientX - rect.left - this.translateX) / this.scale;
                 const y = (e.clientY - rect.top - this.translateY) / this.scale;
@@ -202,10 +24,7 @@
                 });
 
                 this.container.appendChild(marker);
-
-                const region = { element: marker, x: x, y: y, name: regionName, lore: loreText, shared: false };
-                this.regions.push(region);
-
+                this.regions.push({ element: marker, x: x, y: y, name: regionName, lore: loreText });
                 this.updateTransform();
             }
 
@@ -226,10 +45,6 @@
                 const x = (e.clientX - rect.left - this.translateX) / this.scale;
                 const y = (e.clientY - rect.top - this.translateY) / this.scale;
 
-                this.showTextDialog(x, y);
-            }
-
-            showTextDialog(x, y) {
                 const dialog = document.createElement('div');
                 dialog.className = 'text-input-dialog';
                 dialog.innerHTML = `
@@ -241,10 +56,10 @@
                         <option value="other">Other Text</option>
                     </select>
                     <select id="textSize">
-                        <option value="12">Small (12px)</option>
-                        <option value="16" selected>Medium (16px)</option>
-                        <option value="20">Large (20px)</option>
-                        <option value="24">Extra Large (24px)</option>
+                        <option value="12">Small</option>
+                        <option value="16" selected>Medium</option>
+                        <option value="20">Large</option>
+                        <option value="24">Extra Large</option>
                     </select>
                     <select id="textColor">
                         <option value="#D4AF37" selected>Gold</option>
@@ -253,198 +68,91 @@
                         <option value="#45B7D1">Blue</option>
                         <option value="#96CEB4">Green</option>
                         <option value="#FFEAA7">Yellow</option>
-                        <option value="#DDA0DD">Purple</option>
                         <option value="#FFFFFF">White</option>
                     </select>
                     <div class="dialog-buttons">
-                        <button class="dialog-btn secondary" id="cancelText">Cancel</button>
-                        <button class="dialog-btn primary" id="addTextBtn">Add Text</button>
+                        <button class="dialog-btn secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Cancel</button>
+                        <button class="dialog-btn primary" onclick="addTextFromDialog(${x}, ${y})">Add Text</button>
                     </div>
                 `;
 
                 document.body.appendChild(dialog);
-
-                const textInput = document.getElementById('textInput');
-                textInput.focus();
-
-                document.getElementById('addTextBtn').addEventListener('click', () => {
-                    const text = textInput.value.trim();
-                    const textType = document.getElementById('textType').value;
-                    if (text) {
-                        const size = parseInt(document.getElementById('textSize').value);
-                        const color = document.getElementById('textColor').value;
-                        this.createTextLabel(x, y, text, size, color, textType);
-                    }
-                    dialog.remove();
-                    this.toggleTextMode();
-                });
-
-                document.getElementById('cancelText').addEventListener('click', () => {
-                    dialog.remove();
-                });
-
-                textInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        document.getElementById('addTextBtn').click();
-                    }
-                });
+                document.getElementById('textInput').focus();
+                this.toggleTextMode();
             }
 
-            createTextLabel(x, y, text, size, color, textType = 'other') {
+            createTextLabel(x, y, text, size, color, textType) {
                 const label = document.createElement('div');
                 label.className = 'text-label';
                 if (textType === 'region') {
                     label.classList.add('region-label');
                 }
-                label.textContent = text;
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = text;
+                label.appendChild(textSpan);
+
+                if (this.userRole === 'admin') {
+                    const deleteX = document.createElement('div');
+                    deleteX.className = 'delete-x';
+                    deleteX.textContent = '×';
+                    deleteX.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this text?')) {
+                            const index = this.textLabels.findIndex(l => l.element === label);
+                            if (index !== -1) {
+                                this.textLabels.splice(index, 1);
+                                label.remove();
+                            }
+                        }
+                    });
+                    label.appendChild(deleteX);
+
+                    label.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        this.editText(label, textType);
+                    });
+                }
+
                 label.style.color = color;
                 label.style.fontSize = size + 'px';
                 label.style.left = '0px';
                 label.style.top = '0px';
 
-                // Add delete X button
-                const deleteX = document.createElement('div');
-                deleteX.className = 'delete-x';
-                deleteX.textContent = '×';
-                deleteX.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (confirm('Delete this text?')) {
-                        this.deleteTextLabel(label);
-                    }
-                });
-                label.appendChild(deleteX);
-
-                // Double-click to edit
-                if (this.userRole === 'admin') {
-                    label.addEventListener('dblclick', (e) => {
-                        e.stopPropagation();
-                        this.editTextLabel(label, x, y, size, color, textType);
-                    });
-                }
-
                 this.container.appendChild(label);
-
-                const textLabel = { 
-                    element: label, 
-                    x: x, 
-                    y: y, 
-                    text: text, 
-                    baseSize: size, 
-                    color: color,
-                    textType: textType,
-                    shared: false
-                };
-                this.textLabels.push(textLabel);
-
+                this.textLabels.push({ 
+                    element: label, x: x, y: y, text: text, 
+                    baseSize: size, color: color, textType: textType 
+                });
                 this.updateTransform();
             }
 
-            editTextLabel(labelElement, x, y, currentSize, currentColor, currentType) {
-                const currentText = labelElement.textContent.replace('×', ''); // Remove the X
-                
-                const dialog = document.createElement('div');
-                dialog.className = 'text-input-dialog';
-                dialog.innerHTML = `
-                    <h3>Edit Zoonya Text</h3>
-                    <input type="text" id="editTextInput" value="${currentText}" maxlength="50">
-                    <select id="editTextType">
-                        <option value="region" ${currentType === 'region' ? 'selected' : ''}>Region/Country Name</option>
-                        <option value="landmark" ${currentType === 'landmark' ? 'selected' : ''}>City/Landmark</option>
-                        <option value="other" ${currentType === 'other' ? 'selected' : ''}>Other Text</option>
-                    </select>
-                    <select id="editTextSize">
-                        <option value="12" ${currentSize === 12 ? 'selected' : ''}>Small (12px)</option>
-                        <option value="16" ${currentSize === 16 ? 'selected' : ''}>Medium (16px)</option>
-                        <option value="20" ${currentSize === 20 ? 'selected' : ''}>Large (20px)</option>
-                        <option value="24" ${currentSize === 24 ? 'selected' : ''}>Extra Large (24px)</option>
-                    </select>
-                    <select id="editTextColor">
-                        <option value="#D4AF37" ${currentColor === '#D4AF37' ? 'selected' : ''}>Gold</option>
-                        <option value="#FF6B6B" ${currentColor === '#FF6B6B' ? 'selected' : ''}>Red</option>
-                        <option value="#4ECDC4" ${currentColor === '#4ECDC4' ? 'selected' : ''}>Teal</option>
-                        <option value="#45B7D1" ${currentColor === '#45B7D1' ? 'selected' : ''}>Blue</option>
-                        <option value="#96CEB4" ${currentColor === '#96CEB4' ? 'selected' : ''}>Green</option>
-                        <option value="#FFEAA7" ${currentColor === '#FFEAA7' ? 'selected' : ''}>Yellow</option>
-                        <option value="#DDA0DD" ${currentColor === '#DDA0DD' ? 'selected' : ''}>Purple</option>
-                        <option value="#FFFFFF" ${currentColor === '#FFFFFF' ? 'selected' : ''}>White</option>
-                    </select>
-                    <div class="dialog-buttons">
-                        <button class="dialog-btn secondary" id="cancelEdit">Cancel</button>
-                        <button class="dialog-btn primary" id="saveEdit">Save</button>
-                    </div>
-                `;
-
-                document.body.appendChild(dialog);
-
-                const textInput = document.getElementById('editTextInput');
-                textInput.focus();
-                textInput.select();
-
-                document.getElementById('saveEdit').addEventListener('click', () => {
-                    const newText = textInput.value.trim();
-                    if (newText) {
-                        const newSize = parseInt(document.getElementById('editTextSize').value);
-                        const newColor = document.getElementById('editTextColor').value;
-                        const newType = document.getElementById('editTextType').value;
-                        
-                        labelElement.childNodes[0].textContent = newText; // Update text but keep X button
-                        labelElement.style.color = newColor;
-                        labelElement.style.fontSize = newSize + 'px';
-                        
-                        if (newType === 'region') {
-                            labelElement.classList.add('region-label');
-                        } else {
-                            labelElement.classList.remove('region-label');
-                        }
-                        
-                        const labelData = this.textLabels.find(l => l.element === labelElement);
-                        if (labelData) {
-                            labelData.text = newText;
-                            labelData.baseSize = newSize;
-                            labelData.color = newColor;
-                            labelData.textType = newType;
-                        }
-                    }
-                    dialog.remove();
-                });
-
-                document.getElementById('cancelEdit').addEventListener('click', () => {
-                    dialog.remove();
-                });
-            }
-
-            deleteTextLabel(labelElement) {
-                const index = this.textLabels.findIndex(l => l.element === labelElement);
-                if (index !== -1) {
-                    this.textLabels.splice(index, 1);
-                    labelElement.remove();
-                    console.log('Text label deleted');
+            editText(labelElement, currentType) {
+                const currentText = labelElement.querySelector('span').textContent;
+                const newText = prompt('Edit text:', currentText);
+                if (newText) {
+                    labelElement.querySelector('span').textContent = newText;
+                    const labelData = this.textLabels.find(l => l.element === labelElement);
+                    if (labelData) labelData.text = newText;
                 }
             }
 
             clearAll() {
-                if (confirm('Are you sure you want to clear all markers and text labels?')) {
-                    this.regions.forEach(region => {
-                        region.element.remove();
-                    });
+                if (confirm('Clear all markers and text?')) {
+                    this.regions.forEach(r => r.element.remove());
+                    this.textLabels.forEach(l => l.element.remove());
                     this.regions = [];
-
-                    this.textLabels.forEach(label => {
-                        label.element.remove();
-                    });
                     this.textLabels = [];
                 }
             }
         }
 
-        // Authentication
         function authenticate() {
             const key = document.getElementById('accessKey').value.trim().toLowerCase();
-            
-            if (key === CONFIG.ADMIN_KEY.toLowerCase()) {
+            if (key === "zoonya creator") {
                 document.getElementById('authOverlay').style.display = 'none';
                 window.zoonyaMapViewer.setUserRole('admin');
-            } else if (key === CONFIG.VIEWER_KEY.toLowerCase()) {
+            } else if (key === "zoona-unna dua") {
                 document.getElementById('authOverlay').style.display = 'none';
                 window.zoonyaMapViewer.setUserRole('viewer');
             } else {
@@ -458,116 +166,55 @@
             document.getElementById('accessKey').value = '';
             document.getElementById('roleIndicator').style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'none';
-            window.zoonyaMapViewer.setUserRole('viewer');
         }
 
-        function saveMapData() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            alert('Local save feature - use Generate Shared Data for sharing');
-        }
-
-        function loadMapData() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            alert('Use Import button to load exported data');
-        }
-
-        function exportData() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
+        function addTextFromDialog(x, y) {
+            const text = document.getElementById('textInput').value.trim();
+            const textType = document.getElementById('textType').value;
+            const size = parseInt(document.getElementById('textSize').value);
+            const color = document.getElementById('textColor').value;
             
-            const mapData = {
-                regions: window.zoonyaMapViewer.regions.filter(r => !r.shared).map(r => ({
-                    x: r.x,
-                    y: r.y,
-                    name: r.name,
-                    lore: r.lore
-                })),
-                textLabels: window.zoonyaMapViewer.textLabels.filter(l => !l.shared).map(l => ({
-                    x: l.x,
-                    y: l.y,
-                    text: l.text,
-                    baseSize: l.baseSize,
-                    color: l.color,
-                    textType: l.textType
-                })),
-                exportedAt: new Date().toISOString()
-            };
-            
-            const dataStr = JSON.stringify(mapData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'zoonya_personal_export.json';
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importData(event) {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        window.zoonyaMapViewer.loadMapFromData(data);
-                        alert('Map data imported successfully!');
-                    } catch (error) {
-                        alert('Error importing data. Please check the file format.');
-                    }
-                };
-                reader.readAsText(file);
+            if (text) {
+                window.zoonyaMapViewer.createTextLabel(x, y, text, size, color, textType);
             }
+            
+            document.querySelector('.text-input-dialog').remove();
         }
 
         function generateSharedData() {
             if (window.zoonyaMapViewer.userRole !== 'admin') return;
             
-            const sharedData = {
+            const data = {
                 regions: window.zoonyaMapViewer.regions.map(r => ({
-                    x: r.x,
-                    y: r.y,
-                    name: r.name,
-                    lore: r.lore || 'A mysterious place in Zoonya...'
+                    x: r.x, y: r.y, name: r.name, lore: r.lore
                 })),
                 textLabels: window.zoonyaMapViewer.textLabels.map(l => ({
-                    x: l.x,
-                    y: l.y,
-                    text: l.text,
-                    baseSize: l.baseSize,
-                    color: l.color,
-                    textType: l.textType || 'other'
+                    x: l.x, y: l.y, text: l.text, 
+                    baseSize: l.baseSize, color: l.color, textType: l.textType
                 })),
                 lastUpdated: new Date().toISOString()
             };
             
-            const dataStr = JSON.stringify(sharedData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = 'map-data.json';
             link.click();
             URL.revokeObjectURL(url);
             
-            alert('Generated shared data file! Upload map-data.json to your GitHub data/ folder');
+            alert('Generated map-data.json! Upload this to your GitHub data/ folder so everyone can see your annotations.');
         }
 
-        function debugStorage() {
-            console.log('Debug function called');
+        function exportPersonalData() {
+            generateSharedData();
         }
 
-        // Handle Enter key
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('accessKey').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    authenticate();
-                }
-            });
+        document.getElementById('accessKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') authenticate();
         });
 
-        // Initialize
         window.zoonyaMapViewer = new ZoonyaMapViewer();
     </script>
 </body>
@@ -702,8 +349,6 @@
             transform-origin: top left;
             top: 0;
             left: 0;
-            will-change: transform;
-            backface-visibility: hidden;
         }
 
         .controls {
@@ -842,7 +487,6 @@
             background: rgba(0,0,0,0.8);
             white-space: nowrap;
             border: 2px solid rgba(212, 175, 55, 0.3);
-            position: relative;
         }
 
         .text-label.region-label {
@@ -862,13 +506,12 @@
             border-radius: 50%;
             width: 18px;
             height: 18px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            display: none;
             border: 2px solid white;
         }
 
@@ -896,8 +539,7 @@
         }
 
         .text-input-dialog input,
-        .text-input-dialog select,
-        .text-input-dialog textarea {
+        .text-input-dialog select {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
@@ -909,15 +551,8 @@
             box-sizing: border-box;
         }
 
-        .text-input-dialog textarea {
-            height: 80px;
-            resize: vertical;
-            font-family: inherit;
-        }
-
         .text-input-dialog input:focus,
-        .text-input-dialog select:focus,
-        .text-input-dialog textarea:focus {
+        .text-input-dialog select:focus {
             outline: none;
             border-color: #D4AF37;
             box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
@@ -989,7 +624,6 @@
 
         .save-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(50, 205, 50, 0.3);
         }
 
         .logout-btn {
@@ -1004,7 +638,6 @@
             cursor: pointer;
             font-size: 12px;
             z-index: 1000;
-            transition: all 0.3s ease;
         }
 
         .logout-btn:hover {
@@ -1016,7 +649,6 @@
             width: 100%;
             height: 100%;
             background: #00A5D2;
-            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1063,7 +695,7 @@
         <div class="placeholder-map" id="placeholderMap">
             <div class="placeholder-text">
                 <h3>The World of Zoonya Awaits</h3>
-                <p>The ancient map of Zoonya has been loaded from the archives. Explore the mystical realm!</p>
+                <p>Loading the mystical realm of Zoonya...</p>
             </div>
         </div>
         <img class="map-image" id="mapImage" style="display: none;" alt="Zoonya World Map">
@@ -1071,27 +703,17 @@
 
     <div class="info-panel">
         <h2>Zoonya Map</h2>
-        <p>Explore the world of Zoonya with interactive zoom and pan controls.</p>
+        <p>Explore the world of Zoonya with interactive controls.</p>
         
         <div class="file-input-container" id="adminControls" style="display: none;">
-            <label for="mapFile" class="file-label" id="mapFileLabel">Upload New Map</label>
+            <label for="mapFile" class="file-label">Upload New Map</label>
             <input type="file" id="mapFile" class="file-input" accept="image/*">
-            <div style="margin-top: 10px; font-size: 12px; color: #ccc;">
-                <strong>Note:</strong> Uploaded maps are stored locally in your browser only. 
-                To share with others, upload to GitHub repository and update DEFAULT_MAP_URL.
-            </div>
         </div>
 
         <div class="save-data" id="saveControls" style="display: none;">
             <strong>Map Data:</strong><br>
-            <button class="save-btn" onclick="saveMapData()">Save Map</button>
-            <button class="save-btn" onclick="loadMapData()">Load Map</button>
-            <button class="save-btn" onclick="exportData()">Export</button>
-            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
-            <button class="save-btn" onclick="document.getElementById('importFile').click()">Import</button>
-            <br>
-            <button class="save-btn" onclick="debugStorage()" style="background: #666;">Debug Storage</button>
-            <button class="save-btn" onclick="generateSharedData()" style="background: #007bff;">Generate Shared Data</button>
+            <button class="save-btn" onclick="generateSharedData()">Generate Shared Data</button>
+            <button class="save-btn" onclick="exportPersonalData()">Export Personal</button>
         </div>
 
         <div class="instructions">
@@ -1099,12 +721,11 @@
             <ul>
                 <li>Drag to pan around</li>
                 <li>Use zoom buttons or scroll wheel</li>
-                <li id="markerInstruction" style="display: none;">Double-click to add region markers with lore</li>
-                <li id="textInstruction" style="display: none;">Use 'T' button then click to add text</li>
-                <li>Hover over markers for tooltips</li>
-                <li id="editInstructions" style="display: none;">
-                    <li>Double-click text to edit</li>
+                <li id="adminInstructions" style="display: none;">
+                    <li>Double-click to add regions with lore</li>
+                    <li>Use 'T' button then click to add text</li>
                     <li>Hover over text to see delete X</li>
+                    <li>Double-click text to edit</li>
                 </li>
             </ul>
         </div>
@@ -1115,20 +736,18 @@
         <div class="zoom-display" id="zoomDisplay">100%</div>
         <button class="control-btn" id="zoomOut">-</button>
         <button class="control-btn" id="resetView">⌂</button>
-        <button class="control-btn admin-only" id="addText" style="display: none;">T</button>
-        <button class="control-btn admin-only" id="clearMarkers" style="display: none;">Clear</button>
+        <button class="control-btn" id="addText" style="display: none;">T</button>
+        <button class="control-btn" id="clearAll" style="display: none;">Clear</button>
     </div>
 
     <button class="logout-btn" onclick="logout()" style="display: none;" id="logoutBtn">Logout</button>
 
     <script>
-        // Configuration
         const CONFIG = {
             ADMIN_KEY: "Zoonya Creator", 
             VIEWER_KEY: "Zoona-unna dua",     
             DEFAULT_MAP_URL: "https://kaezee.github.io/Zoonya/images/Zoonya%20map.png",
-            SHARED_DATA_URL: "https://kaezee.github.io/Zoonya/data/map-data.json",
-            ENABLE_SAVE: true
+            SHARED_DATA_URL: "https://kaezee.github.io/Zoonya/data/map-data.json"
         };
 
         class ZoonyaMapViewer {
@@ -1153,58 +772,37 @@
                 this.maxZoom = 5;
                 
                 this.initializeEventListeners();
-                this.loadDefaultMap();
+                this.loadMap();
             }
 
             initializeEventListeners() {
-                // File upload
                 document.getElementById('mapFile').addEventListener('change', (e) => {
                     if (this.userRole === 'admin') {
                         this.loadImage(e.target.files[0]);
                     }
                 });
 
-                // Controls
-                document.getElementById('zoomIn').addEventListener('click', () => {
-                    this.zoom(1.2);
-                });
-
-                document.getElementById('zoomOut').addEventListener('click', () => {
-                    this.zoom(0.8);
-                });
-
-                document.getElementById('resetView').addEventListener('click', () => {
-                    this.resetView();
-                });
-
-                document.getElementById('clearMarkers').addEventListener('click', () => {
-                    if (this.userRole === 'admin') {
-                        this.clearAll();
-                    }
-                });
+                document.getElementById('zoomIn').addEventListener('click', () => this.zoom(1.2));
+                document.getElementById('zoomOut').addEventListener('click', () => this.zoom(0.8));
+                document.getElementById('resetView').addEventListener('click', () => this.resetView());
 
                 document.getElementById('addText').addEventListener('click', () => {
-                    if (this.userRole === 'admin') {
-                        this.toggleTextMode();
-                    }
+                    if (this.userRole === 'admin') this.toggleTextMode();
                 });
 
-                // Mouse events
+                document.getElementById('clearAll').addEventListener('click', () => {
+                    if (this.userRole === 'admin') this.clearAll();
+                });
+
                 this.container.addEventListener('mousedown', (e) => {
                     if (e.target === this.image || e.target === this.container) {
                         this.startDragging(e);
                     }
                 });
 
-                document.addEventListener('mousemove', (e) => {
-                    this.drag(e);
-                });
+                document.addEventListener('mousemove', (e) => this.drag(e));
+                document.addEventListener('mouseup', () => this.stopDragging());
 
-                document.addEventListener('mouseup', () => {
-                    this.stopDragging();
-                });
-
-                // Zoom with scroll wheel
                 this.container.addEventListener('wheel', (e) => {
                     e.preventDefault();
                     if (this.image.style.display !== 'none') {
@@ -1214,7 +812,6 @@
                     }
                 });
 
-                // Double-click to add region marker
                 this.container.addEventListener('dblclick', (e) => {
                     if (this.image.style.display !== 'none' && !this.textMode && this.userRole === 'admin') {
                         e.preventDefault();
@@ -1222,63 +819,50 @@
                     }
                 });
 
-                // Single click for text
                 this.container.addEventListener('click', (e) => {
                     if (this.textMode && this.image.style.display !== 'none' && this.userRole === 'admin') {
-                        if (!e.target.classList.contains('control-btn') && 
-                            !e.target.classList.contains('region-marker') &&
-                            !e.target.classList.contains('text-label') &&
-                            !e.target.classList.contains('delete-x')) {
+                        if (!e.target.closest('.control-btn') && 
+                            !e.target.closest('.region-marker') &&
+                            !e.target.closest('.text-label')) {
                             this.addTextLabel(e);
                         }
                     }
                 });
 
-                this.container.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                });
+                this.container.addEventListener('contextmenu', (e) => e.preventDefault());
             }
 
             setUserRole(role) {
                 this.userRole = role;
                 const roleIndicator = document.getElementById('roleIndicator');
-                const adminControls = document.getElementById('adminControls');
-                const saveControls = document.getElementById('saveControls');
-                const logoutBtn = document.getElementById('logoutBtn');
                 
                 roleIndicator.style.display = 'block';
-                logoutBtn.style.display = 'block';
+                document.getElementById('logoutBtn').style.display = 'block';
                 
                 if (role === 'admin') {
                     roleIndicator.textContent = 'Administrator';
                     roleIndicator.classList.add('admin');
-                    adminControls.style.display = 'block';
-                    if (CONFIG.ENABLE_SAVE) {
-                        saveControls.style.display = 'block';
-                    }
-                    
+                    document.getElementById('adminControls').style.display = 'block';
+                    document.getElementById('saveControls').style.display = 'block';
                     document.getElementById('addText').style.display = 'block';
-                    document.getElementById('clearMarkers').style.display = 'block';
-                    document.getElementById('markerInstruction').style.display = 'list-item';
-                    document.getElementById('textInstruction').style.display = 'list-item';
-                    document.getElementById('editInstructions').style.display = 'block';
+                    document.getElementById('clearAll').style.display = 'block';
+                    document.getElementById('adminInstructions').style.display = 'block';
                 } else {
                     roleIndicator.textContent = 'Viewer';
                     roleIndicator.classList.remove('admin');
-                    adminControls.style.display = 'none';
-                    saveControls.style.display = 'none';
-                    
+                    document.getElementById('adminControls').style.display = 'none';
+                    document.getElementById('saveControls').style.display = 'none';
                     document.getElementById('addText').style.display = 'none';
-                    document.getElementById('clearMarkers').style.display = 'none';
-                    document.getElementById('markerInstruction').style.display = 'none';
-                    document.getElementById('textInstruction').style.display = 'none';
-                    document.getElementById('editInstructions').style.display = 'none';
+                    document.getElementById('clearAll').style.display = 'none';
+                    document.getElementById('adminInstructions').style.display = 'none';
                 }
             }
 
-            async loadDefaultMap() {
+            async loadMap() {
+                console.log('Loading Zoonya map...');
+                
+                // Load the base map
                 if (CONFIG.DEFAULT_MAP_URL) {
-                    console.log('Loading default map from:', CONFIG.DEFAULT_MAP_URL);
                     this.image.src = CONFIG.DEFAULT_MAP_URL;
                     this.image.onload = () => {
                         this.placeholder.style.display = 'none';
@@ -1289,7 +873,7 @@
                         }, 100);
                     };
                     this.image.onerror = () => {
-                        console.log("Default map couldn't load");
+                        console.log("Map couldn't load");
                         this.loadSharedData();
                     };
                 } else {
@@ -1298,16 +882,175 @@
             }
 
             async loadSharedData() {
-                if (!CONFIG.SHARED_DATA_URL) return;
-                
                 try {
                     console.log('Loading shared annotations...');
                     const response = await fetch(CONFIG.SHARED_DATA_URL);
                     if (response.ok) {
-                        const sharedData = await response.json();
-                        console.log('Shared annotations loaded:', sharedData);
-                        this.loadSharedAnnotations(sharedData);
-                    } else {
-                        console.log('No shared annotations found');
+                        const data = await response.json();
+                        this.loadAnnotations(data);
                     }
-                } catch
+                } catch (e) {
+                    console.log('No shared annotations available');
+                }
+            }
+
+            loadAnnotations(data) {
+                if (data.regions) {
+                    data.regions.forEach(regionData => {
+                        const marker = document.createElement('div');
+                        marker.className = 'region-marker';
+                        marker.style.left = '0px';
+                        marker.style.top = '0px';
+
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'region-tooltip';
+                        tooltip.textContent = regionData.name;
+                        marker.appendChild(tooltip);
+
+                        marker.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            alert(`${regionData.name}\n\n${regionData.lore}`);
+                        });
+
+                        this.container.appendChild(marker);
+                        this.regions.push({
+                            element: marker,
+                            x: regionData.x,
+                            y: regionData.y,
+                            name: regionData.name,
+                            lore: regionData.lore
+                        });
+                    });
+                }
+                
+                if (data.textLabels) {
+                    data.textLabels.forEach(labelData => {
+                        const label = document.createElement('div');
+                        label.className = 'text-label';
+                        if (labelData.textType === 'region') {
+                            label.classList.add('region-label');
+                        }
+                        label.textContent = labelData.text;
+                        label.style.color = labelData.color;
+                        label.style.fontSize = labelData.baseSize + 'px';
+                        label.style.left = '0px';
+                        label.style.top = '0px';
+
+                        this.container.appendChild(label);
+                        this.textLabels.push({
+                            element: label,
+                            x: labelData.x,
+                            y: labelData.y,
+                            text: labelData.text,
+                            baseSize: labelData.baseSize,
+                            color: labelData.color,
+                            textType: labelData.textType
+                        });
+                    });
+                }
+                
+                this.updateTransform();
+            }
+
+            loadImage(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.image.src = e.target.result;
+                    this.image.onload = () => {
+                        this.placeholder.style.display = 'none';
+                        this.image.style.display = 'block';
+                        this.resetView();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            startDragging(e) {
+                this.isDragging = true;
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
+                this.container.style.cursor = 'grabbing';
+            }
+
+            drag(e) {
+                if (!this.isDragging) return;
+                const deltaX = e.clientX - this.lastMouseX;
+                const deltaY = e.clientY - this.lastMouseY;
+                this.translateX += deltaX;
+                this.translateY += deltaY;
+                this.updateTransform();
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
+            }
+
+            stopDragging() {
+                this.isDragging = false;
+                this.container.style.cursor = this.textMode ? 'crosshair' : 'grab';
+            }
+
+            zoom(factor, centerX = null, centerY = null) {
+                const newScale = Math.max(this.minZoom, Math.min(this.maxZoom, this.scale * factor));
+                if (newScale === this.scale) return;
+
+                const rect = this.container.getBoundingClientRect();
+                const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
+                const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
+
+                const imagePointX = (zoomCenterX - this.translateX) / this.scale;
+                const imagePointY = (zoomCenterY - this.translateY) / this.scale;
+
+                this.scale = newScale;
+                this.translateX = zoomCenterX - imagePointX * this.scale;
+                this.translateY = zoomCenterY - imagePointY * this.scale;
+                
+                this.updateTransform();
+                this.updateZoomDisplay();
+            }
+
+            resetView() {
+                if (this.image.style.display === 'none') return;
+                
+                const containerRect = this.container.getBoundingClientRect();
+                const imageWidth = this.image.naturalWidth;
+                const imageHeight = this.image.naturalHeight;
+                
+                const scaleX = (containerRect.width * 0.8) / imageWidth;
+                const scaleY = (containerRect.height * 0.8) / imageHeight;
+                this.scale = Math.min(scaleX, scaleY, 1);
+                
+                this.translateX = (containerRect.width - imageWidth * this.scale) / 2;
+                this.translateY = (containerRect.height - imageHeight * this.scale) / 2;
+                
+                this.updateTransform();
+                this.updateZoomDisplay();
+            }
+
+            updateTransform() {
+                if (this.image.style.display !== 'none') {
+                    this.image.style.transform = 
+                        `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+                }
+                
+                this.regions.forEach(region => {
+                    region.element.style.transform = 
+                        `translate(${this.translateX + region.x * this.scale}px, ${this.translateY + region.y * this.scale}px) translate(-50%, -50%)`;
+                });
+
+                this.textLabels.forEach(label => {
+                    label.element.style.transform = 
+                        `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
+                    label.element.style.fontSize = Math.max(10, label.baseSize * this.scale) + 'px';
+                });
+            }
+
+            updateZoomDisplay() {
+                this.zoomDisplay.textContent = Math.round(this.scale * 100) + '%';
+            }
+
+            addRegionMarker(e) {
+                const rect = this.container.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.translateX) / this.scale;
+                const y = (e.clientY - rect.top - this.translateY) / this.scale;
+
+                const region
