@@ -115,7 +115,6 @@
             overflow: hidden;
             cursor: grab;
             background: #00A5D2;
-            /* Dark blue vignette effect */
             background: radial-gradient(ellipse at center, #00A5D2 0%, #00A5D2 60%, #003d5c 100%);
         }
 
@@ -140,7 +139,6 @@
             transform-origin: top left;
             top: 0;
             left: 0;
-            /* Optimize for large images */
             will-change: transform;
             backface-visibility: hidden;
         }
@@ -278,7 +276,6 @@
             cursor: pointer;
             padding: 4px 8px;
             border-radius: 4px;
-            background: rgba(0,0,0,0.7);
             white-space: nowrap;
         }
 
@@ -287,6 +284,19 @@
             background: none;
             font-size: 18px;
             font-weight: bold;
+        }
+
+        .text-label.has-background {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+        }
+
+        .text-label.serif-font {
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        .text-label.sans-font {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .text-input-dialog {
@@ -299,7 +309,8 @@
             border-radius: 12px;
             padding: 25px;
             z-index: 2000;
-            min-width: 400px;
+            min-width: 450px;
+            max-width: 90vw;
         }
 
         .text-input-dialog h3 {
@@ -328,6 +339,23 @@
             box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
         }
 
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 8px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-container label {
+            color: #D4AF37;
+            cursor: pointer;
+        }
+
         .dialog-buttons {
             display: flex;
             gap: 10px;
@@ -352,6 +380,11 @@
         .dialog-btn.secondary {
             background: rgba(60, 60, 60, 0.8);
             color: #ccc;
+        }
+
+        .dialog-btn.danger {
+            background: linear-gradient(45deg, #8B0000, #A52A2A);
+            color: #FFB6C1;
         }
 
         .dialog-btn:hover {
@@ -467,7 +500,7 @@
     <div class="map-container" id="mapContainer">
         <div class="placeholder-map" id="placeholderMap">
             <div class="placeholder-text">
-                <h3>⭐ The World of Zoonya Awaits</h3>
+                <h3>The World of Zoonya Awaits</h3>
                 <p>The ancient map of Zoonya has been loaded from the archives. Explore the mystical realm!</p>
             </div>
         </div>
@@ -475,30 +508,29 @@
     </div>
 
     <div class="info-panel">
-        <h2>⭐ Zoonya Map</h2>
+        <h2>Zoonya Map</h2>
         <p>Explore the world of Zoonya with interactive zoom and pan controls.</p>
         
         <div class="file-input-container" id="adminControls" style="display: none;">
-            <label for="mapFile" class="file-label" id="mapFileLabel">📁 Upload New Map</label>
+            <label for="mapFile" class="file-label" id="mapFileLabel">Upload New Map</label>
             <input type="file" id="mapFile" class="file-input" accept="image/*">
         </div>
 
         <div class="save-data" id="saveControls" style="display: none;">
             <strong>Map Data:</strong><br>
-            <button class="save-btn" onclick="generateSharedData()">📋 Generate Shared Data</button>
-            <button class="save-btn" onclick="exportData()">📤 Export</button>
+            <button class="save-btn" onclick="generateSharedData()">Generate Shared Data</button>
+            <button class="save-btn" onclick="exportData()">Export</button>
         </div>
 
         <div class="instructions">
             <strong>Controls:</strong>
             <ul>
-                <li>🖱️ Drag to pan around</li>
-                <li>🔍 Use zoom buttons or scroll wheel</li>
-                <li id="markerInstruction" style="display: none;">🖱️ Double-click to add region markers with lore</li>
-                <li id="textInstruction" style="display: none;">📝 Use 'T' button then click to add text</li>
-                <li>🎯 Hover over markers for tooltips</li>
+                <li>Drag to pan around</li>
+                <li>Use zoom buttons or scroll wheel</li>
+                <li id="markerInstruction" style="display: none;">Double-click to add region markers with lore</li>
+                <li id="textInstruction" style="display: none;">Use 'T' button then click to add text</li>
                 <li id="editInstructions" style="display: none;">
-                    <li>✏️ Double-click text to edit</li>
+                    <li>Double-click text to edit</li>
                 </li>
             </ul>
         </div>
@@ -513,16 +545,16 @@
         <button class="control-btn admin-only" id="clearMarkers" style="display: none;">🗑️</button>
     </div>
 
-    <button class="logout-btn" onclick="logout()" style="display: none;" id="logoutBtn">🚪 Logout</button>
+    <button class="logout-btn" onclick="logout()" style="display: none;" id="logoutBtn">Logout</button>
 
     <script>
         // Configuration - Change these values to customize access
         const CONFIG = {
-            ADMIN_KEY: "Zoonya Creator", // Change this to your admin password
-            VIEWER_KEY: "Zoona-unna dua",     // Change this to your viewer password
-            DEFAULT_MAP_URL: "https://kaezee.github.io/Zoonya/images/Zoonya%20map.png", // Your GitHub-hosted map
-            SHARED_DATA_URL: "https://kaezee.github.io/Zoonya/data/map-data.json", // For shared annotations
-            ENABLE_SAVE: true // Set to false to disable save/load features
+            ADMIN_KEY: "Zoonya Creator",
+            VIEWER_KEY: "Zoona-unna dua",
+            DEFAULT_MAP_URL: "https://kaezee.github.io/Zoonya/images/Zoonya%20map.png",
+            SHARED_DATA_URL: "https://kaezee.github.io/Zoonya/data/map-data.json",
+            ENABLE_SAVE: true
         };
 
         class ZoonyaMapViewer {
@@ -551,14 +583,12 @@
             }
 
             initializeEventListeners() {
-                // File upload (admin only)
                 document.getElementById('mapFile').addEventListener('change', (e) => {
                     if (this.userRole === 'admin') {
                         this.loadImage(e.target.files[0]);
                     }
                 });
 
-                // Zoom controls
                 document.getElementById('zoomIn').addEventListener('click', () => {
                     this.zoom(1.2);
                 });
@@ -583,7 +613,6 @@
                     }
                 });
 
-                // Mouse events
                 this.container.addEventListener('mousedown', (e) => {
                     if (e.target === this.image || e.target === this.container) {
                         this.startDragging(e);
@@ -598,7 +627,6 @@
                     this.stopDragging();
                 });
 
-                // Zoom with scroll wheel
                 this.container.addEventListener('wheel', (e) => {
                     e.preventDefault();
                     if (this.image.style.display !== 'none') {
@@ -608,7 +636,6 @@
                     }
                 });
 
-                // Double-click to add region marker (admin only)
                 this.container.addEventListener('dblclick', (e) => {
                     if (this.image.style.display !== 'none' && !this.textMode && this.userRole === 'admin') {
                         e.preventDefault();
@@ -616,7 +643,6 @@
                     }
                 });
 
-                // Single click for text in text mode (admin only)
                 this.container.addEventListener('click', (e) => {
                     if (this.textMode && this.image.style.display !== 'none' && this.userRole === 'admin') {
                         if (!e.target.classList.contains('control-btn') && 
@@ -651,7 +677,6 @@
                         saveControls.style.display = 'block';
                     }
                     
-                    // Show admin controls
                     document.getElementById('addText').style.display = 'block';
                     document.getElementById('clearMarkers').style.display = 'block';
                     document.getElementById('markerInstruction').style.display = 'list-item';
@@ -663,7 +688,6 @@
                     adminControls.style.display = 'none';
                     saveControls.style.display = 'none';
                     
-                    // Hide admin controls
                     document.getElementById('addText').style.display = 'none';
                     document.getElementById('clearMarkers').style.display = 'none';
                     document.getElementById('markerInstruction').style.display = 'none';
@@ -713,7 +737,6 @@
             }
 
             loadSharedAnnotations(data) {
-                // Load shared regions with lore
                 if (data.regions) {
                     data.regions.forEach(regionData => {
                         const marker = document.createElement('div');
@@ -738,24 +761,42 @@
                             y: regionData.y,
                             name: regionData.name,
                             lore: regionData.lore || '',
-                            shared: true
+                            shared: false // Changed to false to make editable
                         });
                     });
                 }
                 
-                // Load shared text labels
                 if (data.textLabels) {
                     data.textLabels.forEach(labelData => {
                         const label = document.createElement('div');
                         label.className = 'text-label';
+                        
                         if (labelData.textType === 'region') {
                             label.classList.add('region-label');
                         }
+                        
+                        if (labelData.fontFamily === 'serif') {
+                            label.classList.add('serif-font');
+                        } else {
+                            label.classList.add('sans-font');
+                        }
+                        
+                        if (labelData.hasBackground) {
+                            label.classList.add('has-background');
+                        }
+                        
                         label.textContent = labelData.text;
                         label.style.color = labelData.color;
                         label.style.fontSize = labelData.baseSize + 'px';
                         label.style.left = '0px';
                         label.style.top = '0px';
+
+                        if (this.userRole === 'admin') {
+                            label.addEventListener('dblclick', (e) => {
+                                e.stopPropagation();
+                                this.editTextLabel(label, labelData.x, labelData.y, labelData.baseSize, labelData.color, labelData.textType, labelData.fontFamily, labelData.hasBackground);
+                            });
+                        }
 
                         this.container.appendChild(label);
 
@@ -767,7 +808,9 @@
                             baseSize: labelData.baseSize,
                             color: labelData.color,
                             textType: labelData.textType || 'other',
-                            shared: true
+                            fontFamily: labelData.fontFamily || 'sans',
+                            hasBackground: labelData.hasBackground || false,
+                            shared: false // Changed to false to make editable
                         });
                     });
                 }
@@ -961,6 +1004,14 @@
                         <option value="#DDA0DD">Purple</option>
                         <option value="#FFFFFF">White</option>
                     </select>
+                    <select id="fontFamily">
+                        <option value="sans" selected>Sans-Serif Font</option>
+                        <option value="serif">Serif Font</option>
+                    </select>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="hasBackground">
+                        <label for="hasBackground">Add background box</label>
+                    </div>
                     <div class="dialog-buttons">
                         <button class="dialog-btn secondary" id="cancelText">Cancel</button>
                         <button class="dialog-btn primary" id="addTextBtn">Add Text</button>
@@ -974,11 +1025,13 @@
 
                 document.getElementById('addTextBtn').addEventListener('click', () => {
                     const text = textInput.value.trim();
-                    const textType = document.getElementById('textType').value;
                     if (text) {
+                        const textType = document.getElementById('textType').value;
                         const size = parseInt(document.getElementById('textSize').value);
                         const color = document.getElementById('textColor').value;
-                        this.createTextLabel(x, y, text, size, color, textType);
+                        const fontFamily = document.getElementById('fontFamily').value;
+                        const hasBackground = document.getElementById('hasBackground').checked;
+                        this.createTextLabel(x, y, text, size, color, textType, fontFamily, hasBackground);
                     }
                     dialog.remove();
                     this.toggleTextMode();
@@ -995,23 +1048,34 @@
                 });
             }
 
-            createTextLabel(x, y, text, size, color, textType = 'other') {
+            createTextLabel(x, y, text, size, color, textType = 'other', fontFamily = 'sans', hasBackground = false) {
                 const label = document.createElement('div');
                 label.className = 'text-label';
+                
                 if (textType === 'region') {
                     label.classList.add('region-label');
                 }
+                
+                if (fontFamily === 'serif') {
+                    label.classList.add('serif-font');
+                } else {
+                    label.classList.add('sans-font');
+                }
+                
+                if (hasBackground) {
+                    label.classList.add('has-background');
+                }
+                
                 label.textContent = text;
                 label.style.color = color;
                 label.style.fontSize = size + 'px';
                 label.style.left = '0px';
                 label.style.top = '0px';
 
-                // Only admin can edit/delete (only for personal labels, not shared ones)
                 if (this.userRole === 'admin') {
                     label.addEventListener('dblclick', (e) => {
                         e.stopPropagation();
-                        this.editTextLabel(label, x, y, size, color, textType);
+                        this.editTextLabel(label, x, y, size, color, textType, fontFamily, hasBackground);
                     });
                 }
 
@@ -1025,6 +1089,8 @@
                     baseSize: size, 
                     color: color,
                     textType: textType,
+                    fontFamily: fontFamily,
+                    hasBackground: hasBackground,
                     shared: false
                 };
                 this.textLabels.push(textLabel);
@@ -1032,7 +1098,7 @@
                 this.updateTransform();
             }
 
-            editTextLabel(labelElement, x, y, currentSize, currentColor, currentType) {
+            editTextLabel(labelElement, x, y, currentSize, currentColor, currentType, currentFont = 'sans', currentBackground = false) {
                 const currentText = labelElement.textContent;
                 
                 const dialog = document.createElement('div');
@@ -1061,8 +1127,17 @@
                         <option value="#DDA0DD" ${currentColor === '#DDA0DD' ? 'selected' : ''}>Purple</option>
                         <option value="#FFFFFF" ${currentColor === '#FFFFFF' ? 'selected' : ''}>White</option>
                     </select>
+                    <select id="editFontFamily">
+                        <option value="sans" ${currentFont === 'sans' ? 'selected' : ''}>Sans-Serif Font</option>
+                        <option value="serif" ${currentFont === 'serif' ? 'selected' : ''}>Serif Font</option>
+                    </select>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="editHasBackground" ${currentBackground ? 'checked' : ''}>
+                        <label for="editHasBackground">Add background box</label>
+                    </div>
                     <div class="dialog-buttons">
                         <button class="dialog-btn secondary" id="cancelEdit">Cancel</button>
+                        <button class="dialog-btn danger" id="deleteText">Delete</button>
                         <button class="dialog-btn primary" id="saveEdit">Save</button>
                     </div>
                 `;
@@ -1079,16 +1154,32 @@
                         const newSize = parseInt(document.getElementById('editTextSize').value);
                         const newColor = document.getElementById('editTextColor').value;
                         const newType = document.getElementById('editTextType').value;
+                        const newFont = document.getElementById('editFontFamily').value;
+                        const newBackground = document.getElementById('editHasBackground').checked;
                         
-                        labelElement.textContent = newText;
-                        labelElement.style.color = newColor;
-                        labelElement.style.fontSize = newSize + 'px';
+                        // Remove all font classes
+                        labelElement.classList.remove('serif-font', 'sans-font', 'has-background');
                         
+                        // Add appropriate classes
                         if (newType === 'region') {
                             labelElement.classList.add('region-label');
                         } else {
                             labelElement.classList.remove('region-label');
                         }
+                        
+                        if (newFont === 'serif') {
+                            labelElement.classList.add('serif-font');
+                        } else {
+                            labelElement.classList.add('sans-font');
+                        }
+                        
+                        if (newBackground) {
+                            labelElement.classList.add('has-background');
+                        }
+                        
+                        labelElement.textContent = newText;
+                        labelElement.style.color = newColor;
+                        labelElement.style.fontSize = newSize + 'px';
                         
                         const labelData = this.textLabels.find(l => l.element === labelElement);
                         if (labelData) {
@@ -1096,9 +1187,22 @@
                             labelData.baseSize = newSize;
                             labelData.color = newColor;
                             labelData.textType = newType;
+                            labelData.fontFamily = newFont;
+                            labelData.hasBackground = newBackground;
                         }
                     }
                     dialog.remove();
+                });
+
+                document.getElementById('deleteText').addEventListener('click', () => {
+                    if (confirm('Are you sure you want to delete this text?')) {
+                        labelElement.remove();
+                        const index = this.textLabels.findIndex(l => l.element === labelElement);
+                        if (index > -1) {
+                            this.textLabels.splice(index, 1);
+                        }
+                        dialog.remove();
+                    }
                 });
 
                 document.getElementById('cancelEdit').addEventListener('click', () => {
@@ -1161,7 +1265,9 @@
                     text: l.text,
                     baseSize: l.baseSize,
                     color: l.color,
-                    textType: l.textType || 'other'
+                    textType: l.textType || 'other',
+                    fontFamily: l.fontFamily || 'sans',
+                    hasBackground: l.hasBackground || false
                 })),
                 lastUpdated: new Date().toISOString()
             };
@@ -1182,19 +1288,21 @@
             if (window.zoonyaMapViewer.userRole !== 'admin') return;
             
             const mapData = {
-                regions: window.zoonyaMapViewer.regions.filter(r => !r.shared).map(r => ({
+                regions: window.zoonyaMapViewer.regions.map(r => ({
                     x: r.x,
                     y: r.y,
                     name: r.name,
                     lore: r.lore
                 })),
-                textLabels: window.zoonyaMapViewer.textLabels.filter(l => !l.shared).map(l => ({
+                textLabels: window.zoonyaMapViewer.textLabels.map(l => ({
                     x: l.x,
                     y: l.y,
                     text: l.text,
                     baseSize: l.baseSize,
                     color: l.color,
-                    textType: l.textType
+                    textType: l.textType,
+                    fontFamily: l.fontFamily || 'sans',
+                    hasBackground: l.hasBackground || false
                 })),
                 exportedAt: new Date().toISOString()
             };
