@@ -64,6 +64,11 @@
             box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
         }
 
+        .auth-dialog input::placeholder {
+            color: #888;
+            font-style: italic;
+        }
+
         .auth-dialog button {
             background: linear-gradient(45deg, #8B4513, #A0522D);
             color: #D4AF37;
@@ -150,59 +155,6 @@
             gap: 10px;
         }
 
-        .marker-upload-container {
-            position: fixed;
-            top: 20px;
-            left: 350px;
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #8B4513;
-            border-radius: 8px;
-            padding: 15px;
-            z-index: 1000;
-            display: none;
-        }
-
-        .marker-upload-container h3 {
-            color: #D4AF37;
-            margin: 0 0 10px 0;
-            font-size: 16px;
-        }
-
-        .custom-marker {
-            position: absolute;
-            cursor: pointer;
-            transform: translate(-50%, -50%);
-            transition: all 0.3s ease;
-            z-index: 500;
-            max-width: 40px;
-            max-height: 40px;
-            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.6));
-        }
-
-        .custom-marker:hover {
-            transform: translate(-50%, -50%) scale(1.2);
-            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.9));
-        }
-
-        .delete-mode {
-            background: rgba(255, 100, 100, 0.8) !important;
-            color: white !important;
-        }
-
-        .text-label.delete-mode:hover {
-            background: rgba(255, 50, 50, 0.9) !important;
-            transform: translate(-50%, -50%) scale(1.1);
-        }
-
-        .marker-preview {
-            width: 30px;
-            height: 30px;
-            border: 2px solid #8B4513;
-            border-radius: 4px;
-            margin: 5px 0;
-            cursor: pointer;
-        }
-
         .control-btn {
             background: rgba(0, 0, 0, 0.8);
             border: 2px solid #8B4513;
@@ -226,15 +178,6 @@
         .control-btn.active {
             background: rgba(212, 175, 55, 0.8);
             color: #1a1a1a;
-        }
-
-        .control-btn.admin-only {
-            border-color: #D4AF37;
-        }
-
-        .control-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
 
         .zoom-display {
@@ -266,11 +209,6 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
 
-        .auth-dialog input::placeholder {
-            color: #888;
-            font-style: italic;
-        }
-
         .file-input-container {
             margin-top: 15px;
         }
@@ -294,12 +232,6 @@
         .file-label:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-        }
-
-        .file-label.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            pointer-events: none;
         }
 
         .region-marker {
@@ -549,24 +481,12 @@
         <div class="file-input-container" id="adminControls" style="display: none;">
             <label for="mapFile" class="file-label" id="mapFileLabel">📁 Upload New Map</label>
             <input type="file" id="mapFile" class="file-input" accept="image/*">
-            <div style="margin-top: 10px; font-size: 12px; color: #ccc;">
-                <strong>Note:</strong> Uploaded maps are stored locally in your browser only. 
-                To share with others, upload to GitHub repository and update DEFAULT_MAP_URL.
-            </div>
         </div>
 
         <div class="save-data" id="saveControls" style="display: none;">
             <strong>Map Data:</strong><br>
-            <button class="save-btn" onclick="saveMapData()">💾 Save Map</button>
-            <button class="save-btn" onclick="loadMapData()">📂 Load Map</button>
+            <button class="save-btn" onclick="generateSharedData()">📋 Generate Shared Data</button>
             <button class="save-btn" onclick="exportData()">📤 Export</button>
-            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
-            <button class="save-btn" onclick="document.getElementById('importFile').click()">📥 Import</button>
-            <br>
-            <button class="save-btn" onclick="debugStorage()" style="background: #666;">🔍 Debug Storage</button>
-            <button class="save-btn" onclick="clearStorage()" style="background: #a44;">🗑️ Clear Storage</button>
-            <br>
-            <button class="save-btn" onclick="resetToGitHubMap()" style="background: #28a745;">🔄 Reset to GitHub Map</button>
         </div>
 
         <div class="instructions">
@@ -574,10 +494,8 @@
             <ul>
                 <li>🖱️ Drag to pan around</li>
                 <li>🔍 Use zoom buttons or scroll wheel</li>
-                <li id="markerInstruction" style="display: none;">🖱️ Double-click to add region markers</li>
+                <li id="markerInstruction" style="display: none;">🖱️ Double-click to add region markers with lore</li>
                 <li id="textInstruction" style="display: none;">📝 Use 'T' button then click to add text</li>
-                <li id="customMarkerInstruction" style="display: none;">📍 Upload PNG markers and click to place</li>
-                <li id="deleteInstruction" style="display: none;">✂️ Use delete mode to remove individual items</li>
                 <li>🎯 Hover over markers for tooltips</li>
                 <li id="editInstructions" style="display: none;">
                     <li>✏️ Double-click text to edit</li>
@@ -592,15 +510,7 @@
         <button class="control-btn" id="zoomOut">-</button>
         <button class="control-btn" id="resetView">⌂</button>
         <button class="control-btn admin-only" id="addText" style="display: none;">T</button>
-        <button class="control-btn admin-only" id="addMarker" style="display: none;">📍</button>
-        <button class="control-btn admin-only" id="deleteMode" style="display: none;">✂️</button>
         <button class="control-btn admin-only" id="clearMarkers" style="display: none;">🗑️</button>
-    </div>
-
-    <div class="marker-upload-container" id="markerUpload">
-        <h3>Custom Markers</h3>
-        <input type="file" id="markerFile" accept="image/png,image/svg+xml" multiple style="font-size: 12px; color: #D4AF37;">
-        <div id="markerPreviews"></div>
     </div>
 
     <button class="logout-btn" onclick="logout()" style="display: none;" id="logoutBtn">🚪 Logout</button>
@@ -611,6 +521,7 @@
             ADMIN_KEY: "Zoonya Creator", // Change this to your admin password
             VIEWER_KEY: "Zoona-unna dua",     // Change this to your viewer password
             DEFAULT_MAP_URL: "https://kaezee.github.io/Zoonya/images/Zoonya%20map.png", // Your GitHub-hosted map
+            SHARED_DATA_URL: "https://kaezee.github.io/Zoonya/data/map-data.json", // For shared annotations
             ENABLE_SAVE: true // Set to false to disable save/load features
         };
 
@@ -629,12 +540,7 @@
                 this.lastMouseY = 0;
                 this.regions = [];
                 this.textLabels = [];
-                this.customMarkers = [];
-                this.markerImages = [];
-                this.selectedMarkerImage = null;
                 this.textMode = false;
-                this.markerMode = false;
-                this.deleteMode = false;
                 this.userRole = 'viewer';
                 
                 this.minZoom = 0.2;
@@ -642,7 +548,6 @@
                 
                 this.initializeEventListeners();
                 this.loadDefaultMap();
-                this.loadSavedData();
             }
 
             initializeEventListeners() {
@@ -675,25 +580,6 @@
                 document.getElementById('addText').addEventListener('click', () => {
                     if (this.userRole === 'admin') {
                         this.toggleTextMode();
-                    }
-                });
-
-                document.getElementById('addMarker').addEventListener('click', () => {
-                    if (this.userRole === 'admin') {
-                        this.toggleMarkerMode();
-                    }
-                });
-
-                document.getElementById('deleteMode').addEventListener('click', () => {
-                    if (this.userRole === 'admin') {
-                        this.toggleDeleteMode();
-                    }
-                });
-
-                // Custom marker upload
-                document.getElementById('markerFile').addEventListener('change', (e) => {
-                    if (this.userRole === 'admin') {
-                        this.loadCustomMarkers(e.target.files);
                     }
                 });
 
@@ -730,38 +616,14 @@
                     }
                 });
 
-                // Single click for text or markers in respective modes
+                // Single click for text in text mode (admin only)
                 this.container.addEventListener('click', (e) => {
-                    if (this.image.style.display === 'none') return;
-                    
-                    // Handle delete mode clicks first
-                    if (this.deleteMode && this.userRole === 'admin') {
-                        if (e.target.classList.contains('text-label')) {
-                            e.stopPropagation();
-                            this.deleteTextLabel(e.target);
-                            return;
-                        } else if (e.target.classList.contains('custom-marker')) {
-                            e.stopPropagation();
-                            this.deleteCustomMarker(e.target);
-                            return;
-                        } else if (e.target.classList.contains('region-marker')) {
-                            e.stopPropagation();
-                            this.deleteRegionMarker(e.target);
-                            return;
-                        }
-                    }
-                    
-                    // Handle adding new items (only if not clicking on existing items)
-                    if (!e.target.classList.contains('control-btn') && 
-                        !e.target.classList.contains('region-marker') &&
-                        !e.target.classList.contains('text-label') &&
-                        !e.target.classList.contains('custom-marker') &&
-                        !e.target.classList.contains('region-tooltip')) {
-                        
-                        if (this.textMode && this.userRole === 'admin') {
+                    if (this.textMode && this.image.style.display !== 'none' && this.userRole === 'admin') {
+                        if (!e.target.classList.contains('control-btn') && 
+                            !e.target.classList.contains('region-marker') &&
+                            !e.target.classList.contains('text-label') &&
+                            !e.target.classList.contains('region-tooltip')) {
                             this.addTextLabel(e);
-                        } else if (this.markerMode && this.userRole === 'admin' && this.selectedMarkerImage) {
-                            this.addCustomMarker(e);
                         }
                     }
                 });
@@ -769,15 +631,6 @@
                 this.container.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                 });
-
-                // Auto-save every 30 seconds (admin only)
-                if (CONFIG.ENABLE_SAVE) {
-                    setInterval(() => {
-                        if (this.userRole === 'admin') {
-                            this.autoSave();
-                        }
-                    }, 30000);
-                }
             }
 
             setUserRole(role) {
@@ -800,15 +653,10 @@
                     
                     // Show admin controls
                     document.getElementById('addText').style.display = 'block';
-                    document.getElementById('addMarker').style.display = 'block';
-                    document.getElementById('deleteMode').style.display = 'block';
                     document.getElementById('clearMarkers').style.display = 'block';
                     document.getElementById('markerInstruction').style.display = 'list-item';
                     document.getElementById('textInstruction').style.display = 'list-item';
-                    document.getElementById('customMarkerInstruction').style.display = 'list-item';
-                    document.getElementById('deleteInstruction').style.display = 'list-item';
                     document.getElementById('editInstructions').style.display = 'block';
-                    document.getElementById('markerUpload').style.display = 'block';
                 } else {
                     roleIndicator.textContent = 'Viewer';
                     roleIndicator.classList.remove('admin');
@@ -817,22 +665,15 @@
                     
                     // Hide admin controls
                     document.getElementById('addText').style.display = 'none';
-                    document.getElementById('addMarker').style.display = 'none';
-                    document.getElementById('deleteMode').style.display = 'none';
                     document.getElementById('clearMarkers').style.display = 'none';
-                    document.getElementById('markerUpload').style.display = 'none';
-                    
-                    // Hide admin-only instructions
                     document.getElementById('markerInstruction').style.display = 'none';
                     document.getElementById('textInstruction').style.display = 'none';
-                    document.getElementById('customMarkerInstruction').style.display = 'none';
-                    document.getElementById('deleteInstruction').style.display = 'none';
                     document.getElementById('editInstructions').style.display = 'none';
                 }
             }
 
-            loadDefaultMap() {
-                if (CONFIG.DEFAULT_MAP_URL && CONFIG.DEFAULT_MAP_URL.trim() && CONFIG.DEFAULT_MAP_URL !== "https://i.imgur.com/placeholder.jpg") {
+            async loadDefaultMap() {
+                if (CONFIG.DEFAULT_MAP_URL) {
                     console.log('Loading default map from:', CONFIG.DEFAULT_MAP_URL);
                     this.image.src = CONFIG.DEFAULT_MAP_URL;
                     this.image.onload = () => {
@@ -840,17 +681,99 @@
                         this.image.style.display = 'block';
                         setTimeout(() => {
                             this.resetView();
-                            this.loadMapDataFromStorage();
-                        }, 50);
+                            this.loadSharedData();
+                        }, 100);
                     };
                     this.image.onerror = () => {
                         console.log("Default map couldn't load, showing placeholder");
+                        this.loadSharedData();
                     };
                 } else {
                     console.log('No default map URL configured');
-                    // Still try to load saved data even without default map
-                    this.loadMapDataFromStorage();
+                    this.loadSharedData();
                 }
+            }
+
+            async loadSharedData() {
+                if (!CONFIG.SHARED_DATA_URL) return;
+                
+                try {
+                    console.log('Loading shared annotations from:', CONFIG.SHARED_DATA_URL);
+                    const response = await fetch(CONFIG.SHARED_DATA_URL);
+                    if (response.ok) {
+                        const sharedData = await response.json();
+                        console.log('Shared annotations loaded:', sharedData);
+                        this.loadSharedAnnotations(sharedData);
+                    } else {
+                        console.log('No shared annotations found');
+                    }
+                } catch (e) {
+                    console.log('Could not load shared annotations:', e.message);
+                }
+            }
+
+            loadSharedAnnotations(data) {
+                // Load shared regions with lore
+                if (data.regions) {
+                    data.regions.forEach(regionData => {
+                        const marker = document.createElement('div');
+                        marker.className = 'region-marker';
+                        marker.style.left = '0px';
+                        marker.style.top = '0px';
+
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'region-tooltip';
+                        tooltip.textContent = regionData.name;
+                        marker.appendChild(tooltip);
+
+                        marker.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            alert(`${regionData.name}\n\n${regionData.lore || 'A mysterious place in Zoonya...'}`);
+                        });
+
+                        this.container.appendChild(marker);
+                        this.regions.push({
+                            element: marker,
+                            x: regionData.x,
+                            y: regionData.y,
+                            name: regionData.name,
+                            lore: regionData.lore || '',
+                            shared: true
+                        });
+                    });
+                }
+                
+                // Load shared text labels
+                if (data.textLabels) {
+                    data.textLabels.forEach(labelData => {
+                        const label = document.createElement('div');
+                        label.className = 'text-label';
+                        if (labelData.textType === 'region') {
+                            label.classList.add('region-label');
+                        }
+                        label.textContent = labelData.text;
+                        label.style.color = labelData.color;
+                        label.style.fontSize = labelData.baseSize + 'px';
+                        label.style.left = '0px';
+                        label.style.top = '0px';
+
+                        this.container.appendChild(label);
+
+                        this.textLabels.push({
+                            element: label,
+                            x: labelData.x,
+                            y: labelData.y,
+                            text: labelData.text,
+                            baseSize: labelData.baseSize,
+                            color: labelData.color,
+                            textType: labelData.textType || 'other',
+                            shared: true
+                        });
+                    });
+                }
+                
+                this.updateTransform();
+                console.log('Shared annotations loaded successfully');
             }
 
             loadImage(file) {
@@ -862,19 +785,9 @@
                     this.image.onload = () => {
                         this.placeholder.style.display = 'none';
                         this.image.style.display = 'block';
-                        
-                        // For large images, wait longer for full processing
-                        const imageSize = this.image.naturalWidth * this.image.naturalHeight;
-                        const delay = imageSize > 4000000 ? 200 : 50; // 200ms for large images
-                        
                         setTimeout(() => {
-                            console.log(`Image loaded: ${this.image.naturalWidth}x${this.image.naturalHeight}`);
                             this.resetView();
-                        }, delay);
-                        
-                        if (this.userRole === 'admin' && CONFIG.ENABLE_SAVE) {
-                            this.saveImageData(e.target.result);
-                        }
+                        }, 100);
                     };
                 };
                 reader.readAsDataURL(file);
@@ -896,9 +809,6 @@
                 this.translateX += deltaX;
                 this.translateY += deltaY;
 
-                // Constrain translation to prevent going too far
-                this.constrainTranslation();
-
                 this.updateTransform();
 
                 this.lastMouseX = e.clientX;
@@ -919,20 +829,13 @@
                 const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
                 const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
 
-                // Calculate the point in the image coordinates that we're zooming towards
                 const imagePointX = (zoomCenterX - this.translateX) / this.scale;
                 const imagePointY = (zoomCenterY - this.translateY) / this.scale;
 
-                // Update scale
                 this.scale = newScale;
 
-                // Calculate new translation to keep the zoom point in the same screen position
                 this.translateX = zoomCenterX - imagePointX * this.scale;
                 this.translateY = zoomCenterY - imagePointY * this.scale;
-                
-                // Update bounds and constrain
-                this.setBounds();
-                this.constrainTranslation();
                 
                 this.updateTransform();
                 this.updateZoomDisplay();
@@ -945,56 +848,15 @@
                 const imageWidth = this.image.naturalWidth;
                 const imageHeight = this.image.naturalHeight;
                 
-                console.log(`Container: ${containerRect.width}x${containerRect.height}, Image: ${imageWidth}x${imageHeight}`);
+                const scaleX = (containerRect.width * 0.8) / imageWidth;
+                const scaleY = (containerRect.height * 0.8) / imageHeight;
+                this.scale = Math.min(scaleX, scaleY, 1);
                 
-                // For very large images, use a smaller initial scale
-                const maxDimension = Math.max(imageWidth, imageHeight);
-                let targetScale;
-                
-                if (maxDimension > 3000) {
-                    // Large image - scale to fit with more margin
-                    const scaleX = (containerRect.width * 0.6) / imageWidth;
-                    const scaleY = (containerRect.height * 0.6) / imageHeight;
-                    targetScale = Math.min(scaleX, scaleY, 0.5);
-                } else {
-                    // Normal image scaling
-                    const scaleX = (containerRect.width * 0.8) / imageWidth;
-                    const scaleY = (containerRect.height * 0.8) / imageHeight;
-                    targetScale = Math.min(scaleX, scaleY, 1);
-                }
-                
-                this.scale = targetScale;
-                
-                // Center the image precisely
                 this.translateX = (containerRect.width - imageWidth * this.scale) / 2;
                 this.translateY = (containerRect.height - imageHeight * this.scale) / 2;
                 
-                console.log(`Final scale: ${this.scale}, Position: ${this.translateX}, ${this.translateY}`);
-                
-                // Set bounds for panning
-                this.setBounds();
-                
                 this.updateTransform();
                 this.updateZoomDisplay();
-            }
-
-            setBounds() {
-                const containerRect = this.container.getBoundingClientRect();
-                const scaledWidth = this.image.naturalWidth * this.scale;
-                const scaledHeight = this.image.naturalHeight * this.scale;
-                
-                // Calculate maximum translation bounds
-                this.maxTranslateX = Math.max(0, (scaledWidth - containerRect.width) / 2 + 100);
-                this.maxTranslateY = Math.max(0, (scaledHeight - containerRect.height) / 2 + 100);
-                this.minTranslateX = Math.min(0, (containerRect.width - scaledWidth) / 2 - 100);
-                this.minTranslateY = Math.min(0, (containerRect.height - scaledHeight) / 2 - 100);
-            }
-
-            constrainTranslation() {
-                if (!this.maxTranslateX) return;
-                
-                this.translateX = Math.max(this.minTranslateX, Math.min(this.maxTranslateX, this.translateX));
-                this.translateY = Math.max(this.minTranslateY, Math.min(this.maxTranslateY, this.translateY));
             }
 
             updateTransform() {
@@ -1013,15 +875,6 @@
                         `translate(${this.translateX + label.x * this.scale}px, ${this.translateY + label.y * this.scale}px) translate(-50%, -50%)`;
                     label.element.style.fontSize = Math.max(10, label.baseSize * this.scale) + 'px';
                 });
-
-                // Update custom markers positions
-                this.customMarkers.forEach(marker => {
-                    marker.element.style.transform = 
-                        `translate(${this.translateX + marker.x * this.scale}px, ${this.translateY + marker.y * this.scale}px) translate(-50%, -50%)`;
-                    const size = Math.max(20, 40 * this.scale);
-                    marker.element.style.maxWidth = size + 'px';
-                    marker.element.style.maxHeight = size + 'px';
-                });
             }
 
             updateZoomDisplay() {
@@ -1036,7 +889,7 @@
                 const regionName = prompt('Enter region/landmark name:');
                 if (!regionName) return;
                 
-                const loreText = prompt('Enter lore/description for this place (optional):') || 'A mysterious place in the world of Zoonya...';
+                const loreText = prompt('Enter lore/description for this place:') || 'A mysterious place in the world of Zoonya...';
 
                 const marker = document.createElement('div');
                 marker.className = 'region-marker';
@@ -1055,11 +908,10 @@
 
                 this.container.appendChild(marker);
 
-                const region = { element: marker, x: x, y: y, name: regionName, lore: loreText };
+                const region = { element: marker, x: x, y: y, name: regionName, lore: loreText, shared: false };
                 this.regions.push(region);
 
                 this.updateTransform();
-                if (CONFIG.ENABLE_SAVE) this.autoSave();
             }
 
             toggleTextMode() {
@@ -1075,10 +927,6 @@
             }
 
             addTextLabel(e) {
-                if (e.target.classList.contains('region-marker') || e.target.classList.contains('control-btn')) {
-                    return;
-                }
-
                 const rect = this.container.getBoundingClientRect();
                 const x = (e.clientX - rect.left - this.translateX) / this.scale;
                 const y = (e.clientY - rect.top - this.translateY) / this.scale;
@@ -1159,21 +1007,11 @@
                 label.style.left = '0px';
                 label.style.top = '0px';
 
-                // Only admin can edit/delete with double-click (when not in delete mode)
+                // Only admin can edit/delete (only for personal labels, not shared ones)
                 if (this.userRole === 'admin') {
                     label.addEventListener('dblclick', (e) => {
                         e.stopPropagation();
-                        if (!this.deleteMode) {
-                            this.editTextLabel(label, x, y, size, color, textType);
-                        }
-                    });
-
-                    // Handle delete mode clicks
-                    label.addEventListener('click', (e) => {
-                        if (this.deleteMode) {
-                            e.stopPropagation();
-                            this.deleteTextLabel(label);
-                        }
+                        this.editTextLabel(label, x, y, size, color, textType);
                     });
                 }
 
@@ -1186,15 +1024,15 @@
                     text: text, 
                     baseSize: size, 
                     color: color,
-                    textType: textType
+                    textType: textType,
+                    shared: false
                 };
                 this.textLabels.push(textLabel);
 
                 this.updateTransform();
-                if (CONFIG.ENABLE_SAVE) this.autoSave();
             }
 
-            editTextLabel(labelElement, x, y, currentSize, currentColor) {
+            editTextLabel(labelElement, x, y, currentSize, currentColor, currentType) {
                 const currentText = labelElement.textContent;
                 
                 const dialog = document.createElement('div');
@@ -1202,6 +1040,11 @@
                 dialog.innerHTML = `
                     <h3>Edit Zoonya Text</h3>
                     <input type="text" id="editTextInput" value="${currentText}" maxlength="50">
+                    <select id="editTextType">
+                        <option value="region" ${currentType === 'region' ? 'selected' : ''}>Region/Country Name</option>
+                        <option value="landmark" ${currentType === 'landmark' ? 'selected' : ''}>City/Landmark</option>
+                        <option value="other" ${currentType === 'other' ? 'selected' : ''}>Other Text</option>
+                    </select>
                     <select id="editTextSize">
                         <option value="12" ${currentSize === 12 ? 'selected' : ''}>Small (12px)</option>
                         <option value="16" ${currentSize === 16 ? 'selected' : ''}>Medium (16px)</option>
@@ -1235,19 +1078,25 @@
                     if (newText) {
                         const newSize = parseInt(document.getElementById('editTextSize').value);
                         const newColor = document.getElementById('editTextColor').value;
+                        const newType = document.getElementById('editTextType').value;
                         
                         labelElement.textContent = newText;
                         labelElement.style.color = newColor;
                         labelElement.style.fontSize = newSize + 'px';
+                        
+                        if (newType === 'region') {
+                            labelElement.classList.add('region-label');
+                        } else {
+                            labelElement.classList.remove('region-label');
+                        }
                         
                         const labelData = this.textLabels.find(l => l.element === labelElement);
                         if (labelData) {
                             labelData.text = newText;
                             labelData.baseSize = newSize;
                             labelData.color = newColor;
+                            labelData.textType = newType;
                         }
-                        
-                        if (CONFIG.ENABLE_SAVE) this.autoSave();
                     }
                     dialog.remove();
                 });
@@ -1268,255 +1117,7 @@
                         label.element.remove();
                     });
                     this.textLabels = [];
-                    
-                    if (CONFIG.ENABLE_SAVE) this.autoSave();
                 }
-            }
-
-            // Save/Load functionality - Enhanced debugging
-            saveImageData(imageData) {
-                if (CONFIG.ENABLE_SAVE) {
-                    try {
-                        localStorage.setItem('zoonya_map_image', imageData);
-                        localStorage.setItem('zoonya_default_map', imageData);
-                        console.log('✅ Image saved to localStorage. Size:', Math.round(imageData.length / 1024), 'KB');
-                        return true;
-                    } catch (e) {
-                        console.error('❌ Failed to save image:', e);
-                        alert('Failed to save image: ' + e.message);
-                        return false;
-                    }
-                }
-                return false;
-            }
-
-            testLocalStorage() {
-                try {
-                    const testKey = 'zoonya_test';
-                    const testData = 'test_value_' + Date.now();
-                    localStorage.setItem(testKey, testData);
-                    const retrieved = localStorage.getItem(testKey);
-                    localStorage.removeItem(testKey);
-                    
-                    if (retrieved === testData) {
-                        console.log('✅ localStorage is working');
-                        return true;
-                    } else {
-                        console.error('❌ localStorage test failed - data mismatch');
-                        return false;
-                    }
-                } catch (e) {
-                    console.error('❌ localStorage not available:', e);
-                    return false;
-                }
-            }
-
-            loadSavedData() {
-                console.log('🔄 Starting to load saved data...');
-                
-                if (!this.testLocalStorage()) {
-                    console.log('LocalStorage not available, skipping save/load');
-                    this.loadDefaultMap();
-                    return;
-                }
-                
-                try {
-                    // Try to load saved image first
-                    let savedImage = localStorage.getItem('zoonya_map_image');
-                    if (!savedImage) {
-                        savedImage = localStorage.getItem('zoonya_default_map');
-                        console.log('Primary image not found, trying backup');
-                    }
-                    
-                    if (savedImage && savedImage !== "data:," && savedImage.length > 100) {
-                        console.log('📷 Found saved image, size:', Math.round(savedImage.length / 1024), 'KB');
-                        this.image.src = savedImage;
-                        this.image.onload = () => {
-                            console.log('✅ Saved image loaded successfully');
-                            this.placeholder.style.display = 'none';
-                            this.image.style.display = 'block';
-                            setTimeout(() => {
-                                this.resetView();
-                                this.loadMapDataFromStorage();
-                            }, 100);
-                        };
-                        this.image.onerror = () => {
-                            console.log('❌ Saved image failed to load, trying default map');
-                            this.loadDefaultMap();
-                        };
-                    } else {
-                        console.log('📷 No valid saved image found');
-                        this.loadDefaultMap();
-                    }
-                } catch (e) {
-                    console.error('❌ Error loading saved data:', e);
-                    this.loadDefaultMap();
-                }
-            }
-
-            loadMapDataFromStorage() {
-                try {
-                    const savedData = localStorage.getItem('zoonya_map_data');
-                    if (savedData) {
-                        console.log('📊 Loading map data...');
-                        const data = JSON.parse(savedData);
-                        console.log('📊 Map data contains:', {
-                            regions: data.regions?.length || 0,
-                            textLabels: data.textLabels?.length || 0,
-                            customMarkers: data.customMarkers?.length || 0,
-                            lastSaved: data.lastSaved || 'unknown'
-                        });
-                        this.loadMapFromData(data);
-                    } else {
-                        console.log('📊 No saved map data found');
-                    }
-                } catch (e) {
-                    console.error('❌ Error loading map data:', e);
-                }
-            }
-
-            autoSave() {
-                if (!CONFIG.ENABLE_SAVE || this.userRole !== 'admin') return;
-                
-                try {
-                    const mapData = {
-                        regions: this.regions.map(r => ({
-                            x: r.x,
-                            y: r.y,
-                            name: r.name
-                        })),
-                        textLabels: this.textLabels.map(l => ({
-                            x: l.x,
-                            y: l.y,
-                            text: l.text,
-                            baseSize: l.baseSize,
-                            color: l.color
-                        })),
-                        customMarkers: this.customMarkers.map(m => ({
-                            x: m.x,
-                            y: m.y,
-                            imageData: m.imageData
-                        })),
-                        markerImages: this.markerImages,
-                        scale: this.scale,
-                        translateX: this.translateX,
-                        translateY: this.translateY,
-                        lastSaved: new Date().toISOString()
-                    };
-                    
-                    const dataStr = JSON.stringify(mapData);
-                    localStorage.setItem('zoonya_map_data', dataStr);
-                    console.log('💾 Auto-saved map data:', {
-                        size: Math.round(dataStr.length / 1024) + 'KB',
-                        regions: mapData.regions.length,
-                        textLabels: mapData.textLabels.length,
-                        customMarkers: mapData.customMarkers.length,
-                        time: new Date().toLocaleTimeString()
-                    });
-                    return true;
-                } catch (e) {
-                    console.error('❌ Auto-save failed:', e);
-                    return false;
-                }
-            }
-
-            loadMapFromData(data) {
-                // Clear existing elements (but don't clear arrays yet)
-                this.regions.forEach(region => region.element.remove());
-                this.textLabels.forEach(label => label.element.remove());
-                this.customMarkers.forEach(marker => marker.element.remove());
-                
-                // Reset arrays
-                this.regions = [];
-                this.textLabels = [];
-                this.customMarkers = [];
-                
-                // Load marker images first
-                if (data.markerImages) {
-                    this.markerImages = data.markerImages;
-                    // Restore marker previews
-                    const previewContainer = document.getElementById('markerPreviews');
-                    previewContainer.innerHTML = '';
-                    this.markerImages.forEach(markerData => {
-                        this.displayMarkerPreview(markerData);
-                    });
-                }
-                
-                // Load regions
-                if (data.regions) {
-                    data.regions.forEach(regionData => {
-                        const marker = document.createElement('div');
-                        marker.className = 'region-marker';
-                        marker.style.left = '0px';
-                        marker.style.top = '0px';
-
-                        const tooltip = document.createElement('div');
-                        tooltip.className = 'region-tooltip';
-                        tooltip.textContent = regionData.name;
-                        marker.appendChild(tooltip);
-
-                        marker.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            alert(`Region: ${regionData.name}\nWelcome to ${regionData.name} in the world of Zoonya!`);
-                        });
-
-                        this.container.appendChild(marker);
-                        this.regions.push({
-                            element: marker,
-                            x: regionData.x,
-                            y: regionData.y,
-                            name: regionData.name
-                        });
-                    });
-                }
-                
-                // Load text labels
-                if (data.textLabels) {
-                    data.textLabels.forEach(labelData => {
-                        this.createTextLabel(
-                            labelData.x,
-                            labelData.y,
-                            labelData.text,
-                            labelData.baseSize,
-                            labelData.color
-                        );
-                    });
-                }
-                
-                // Load custom markers
-                if (data.customMarkers) {
-                    data.customMarkers.forEach(markerData => {
-                        const markerElement = document.createElement('img');
-                        markerElement.src = markerData.imageData.data;
-                        markerElement.className = 'custom-marker';
-                        markerElement.style.left = '0px';
-                        markerElement.style.top = '0px';
-                        markerElement.title = markerData.imageData.name;
-
-                        this.container.appendChild(markerElement);
-
-                        this.customMarkers.push({
-                            element: markerElement,
-                            x: markerData.x,
-                            y: markerData.y,
-                            imageData: markerData.imageData
-                        });
-                    });
-                }
-                
-                // Restore view if available
-                if (data.scale && this.image.style.display !== 'none') {
-                    this.scale = data.scale;
-                    this.translateX = data.translateX || 0;
-                    this.translateY = data.translateY || 0;
-                    this.updateTransform();
-                    this.updateZoomDisplay();
-                } else {
-                    // Just update positions without changing view
-                    this.updateTransform();
-                }
-                
-                console.log('Map data loaded successfully');
             }
         }
 
@@ -1544,160 +1145,57 @@
             window.zoonyaMapViewer.setUserRole('viewer');
         }
 
-        function saveMapData() {
+        function generateSharedData() {
             if (window.zoonyaMapViewer.userRole !== 'admin') return;
             
-            try {
-                const mapData = {
-                    regions: window.zoonyaMapViewer.regions.map(r => ({
-                        x: r.x,
-                        y: r.y,
-                        name: r.name
-                    })),
-                    textLabels: window.zoonyaMapViewer.textLabels.map(l => ({
-                        x: l.x,
-                        y: l.y,
-                        text: l.text,
-                        baseSize: l.baseSize,
-                        color: l.color
-                    })),
-                    customMarkers: window.zoonyaMapViewer.customMarkers.map(m => ({
-                        x: m.x,
-                        y: m.y,
-                        imageData: m.imageData
-                    })),
-                    markerImages: window.zoonyaMapViewer.markerImages,
-                    scale: window.zoonyaMapViewer.scale,
-                    translateX: window.zoonyaMapViewer.translateX,
-                    translateY: window.zoonyaMapViewer.translateY,
-                    savedAt: new Date().toISOString()
-                };
-                
-                const dataStr = JSON.stringify(mapData);
-                localStorage.setItem('zoonya_map_data', dataStr);
-                
-                // Also save current image for persistence
-                if (window.zoonyaMapViewer.image.src) {
-                    const success = window.zoonyaMapViewer.saveImageData(window.zoonyaMapViewer.image.src);
-                    if (success) {
-                        alert(`✅ Map data saved successfully!\nSize: ${Math.round(dataStr.length / 1024)}KB\nRegions: ${mapData.regions.length}\nTexts: ${mapData.textLabels.length}\nMarkers: ${mapData.customMarkers.length}`);
-                    } else {
-                        alert('⚠️ Map data saved but image save failed. Check console for details.');
-                    }
-                } else {
-                    alert('✅ Map data saved (no image to save)');
-                }
-            } catch (e) {
-                console.error('❌ Save failed:', e);
-                alert('❌ Failed to save: ' + e.message);
-            }
-        }
-
-        function loadMapData() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            try {
-                const savedData = localStorage.getItem('zoonya_map_data');
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    window.zoonyaMapViewer.loadMapFromData(data);
-                    alert(`✅ Map data loaded!\nFrom: ${data.savedAt || 'Unknown'}\nRegions: ${data.regions?.length || 0}\nTexts: ${data.textLabels?.length || 0}\nMarkers: ${data.customMarkers?.length || 0}`);
-                } else {
-                    alert('❌ No saved data found.');
-                }
-            } catch (e) {
-                console.error('❌ Load failed:', e);
-                alert('❌ Error loading saved data: ' + e.message);
-            }
-        }
-
-        function debugStorage() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            const mapData = localStorage.getItem('zoonya_map_data');
-            const mapImage = localStorage.getItem('zoonya_map_image');
-            const defaultMap = localStorage.getItem('zoonya_default_map');
-            
-            let report = '🔍 STORAGE DEBUG REPORT\n\n';
-            report += `Map Data: ${mapData ? Math.round(mapData.length/1024)+'KB' : 'Not found'}\n`;
-            report += `Map Image: ${mapImage ? Math.round(mapImage.length/1024)+'KB' : 'Not found'}\n`;
-            report += `Default Map: ${defaultMap ? Math.round(defaultMap.length/1024)+'KB' : 'Not found'}\n\n`;
-            
-            if (mapData) {
-                try {
-                    const data = JSON.parse(mapData);
-                    report += `Regions: ${data.regions?.length || 0}\n`;
-                    report += `Text Labels: ${data.textLabels?.length || 0}\n`;
-                    report += `Custom Markers: ${data.customMarkers?.length || 0}\n`;
-                    report += `Last Saved: ${data.lastSaved || 'Unknown'}\n`;
-                } catch (e) {
-                    report += `❌ Data parsing error: ${e.message}\n`;
-                }
-            }
-            
-            // Check localStorage limits
-            try {
-                let total = 0;
-                for (let key in localStorage) {
-                    if (localStorage.hasOwnProperty(key)) {
-                        total += localStorage[key].length;
-                    }
-                }
-                report += `\nTotal localStorage usage: ${Math.round(total/1024)}KB`;
-            } catch (e) {
-                report += `\n❌ Error calculating storage: ${e.message}`;
-            }
-            
-            console.log(report);
-            alert(report);
-        }
-
-        function resetToGitHubMap() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            if (confirm('Reset to the GitHub-hosted Zoonya map? This will replace any locally uploaded map.')) {
-                // Clear local image storage
-                localStorage.removeItem('zoonya_map_image');
-                localStorage.removeItem('zoonya_default_map');
-                
-                // Force reload from GitHub
-                window.zoonyaMapViewer.loadDefaultMap();
-                
-                alert('✅ Reset to GitHub-hosted map!');
-            }
-        }
-
-        function clearStorage() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            if (confirm('⚠️ This will delete ALL saved map data. Are you sure?')) {
-                localStorage.removeItem('zoonya_map_data');
-                localStorage.removeItem('zoonya_map_image'); 
-                localStorage.removeItem('zoonya_default_map');
-                alert('✅ Storage cleared successfully!');
-                location.reload();
-            }
-        }
-
-        function exportData() {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            const mapData = {
+            const sharedData = {
                 regions: window.zoonyaMapViewer.regions.map(r => ({
                     x: r.x,
                     y: r.y,
-                    name: r.name
+                    name: r.name,
+                    lore: r.lore || 'A mysterious place in Zoonya...'
                 })),
                 textLabels: window.zoonyaMapViewer.textLabels.map(l => ({
                     x: l.x,
                     y: l.y,
                     text: l.text,
                     baseSize: l.baseSize,
-                    color: l.color
+                    color: l.color,
+                    textType: l.textType || 'other'
                 })),
-                scale: window.zoonyaMapViewer.scale,
-                translateX: window.zoonyaMapViewer.translateX,
-                translateY: window.zoonyaMapViewer.translateY,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(sharedData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'map-data.json';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            alert('Generated map-data.json! Upload this file to your GitHub data/ folder so everyone can see your annotations automatically.');
+        }
+
+        function exportData() {
+            if (window.zoonyaMapViewer.userRole !== 'admin') return;
+            
+            const mapData = {
+                regions: window.zoonyaMapViewer.regions.filter(r => !r.shared).map(r => ({
+                    x: r.x,
+                    y: r.y,
+                    name: r.name,
+                    lore: r.lore
+                })),
+                textLabels: window.zoonyaMapViewer.textLabels.filter(l => !l.shared).map(l => ({
+                    x: l.x,
+                    y: l.y,
+                    text: l.text,
+                    baseSize: l.baseSize,
+                    color: l.color,
+                    textType: l.textType
+                })),
                 exportedAt: new Date().toISOString()
             };
             
@@ -1706,28 +1204,9 @@
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'zoonya_map_export.json';
+            link.download = 'zoonya_personal_export.json';
             link.click();
             URL.revokeObjectURL(url);
-        }
-
-        function importData(event) {
-            if (window.zoonyaMapViewer.userRole !== 'admin') return;
-            
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        window.zoonyaMapViewer.loadMapFromData(data);
-                        alert('Map data imported successfully!');
-                    } catch (error) {
-                        alert('Error importing data. Please check the file format.');
-                    }
-                };
-                reader.readAsText(file);
-            }
         }
 
         // Handle Enter key on access key input
